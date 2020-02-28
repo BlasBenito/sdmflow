@@ -1,3 +1,110 @@
+# TESTING NEW FUNCTIONS
+data("virtualSpeciesPB")
+
+#s_biserial_cor
+#---------------
+biserial.cor <- s_biserial_cor(
+    training.df = virtualSpeciesPB,
+    response.col = "presence",
+    omit.cols = c("x", "y")
+  )
+biserial.cor$df
+
+#s_cor
+#---------------
+s_cor(
+  training.df = virtualSpeciesPB,
+  omit.cols = c("x", "y", "presence")
+)
+
+#s_cor with biserial.cor argument
+#---------------
+s.cor.out <- s_cor(
+  training.df = virtualSpeciesPB,
+  omit.cols = c("x", "y", "presence"),
+  biserial.cor = biserial.cor
+)
+s.cor.out$plot
+s.cor.out$vars
+
+#s_cor_auto
+#---------------
+s.cor.out <- s_cor_auto(
+  training.df = virtualSpeciesPB,
+  omit.cols = c("x", "y", "presence"),
+  biserial.cor = biserial.cor,
+  max.cor = 0.7
+)
+s.cor.out$plot
+s.cor.out$vars
+
+#s_vif_auto
+#---------------
+#notes about the function
+#scenarios
+#1. only training df and omit.cols is provided
+#the analysis is done for all numeric variables not in omit.cols, without taking any order of preference into account
+vif.auto.out <- s_vif_auto(
+  training.df = virtualSpeciesPB,
+  select.cols = NULL,
+  omit.cols = c("x", "y", "presence"),
+  preference.order = NULL,
+  biserial.cor = NULL,
+  verbose = TRUE
+)
+
+#2, preference.order is provided
+#variables in preference.order are processed separately from variables not in preference.order
+#the former are selected according to priority, the latter are selected by removing those with maximum vif on each step.
+vif.auto.out <- s_vif_auto(
+  training.df = virtualSpeciesPB,
+  select.cols = NULL,
+  omit.cols = c("x", "y", "presence"),
+  preference.order = c("bio1", "bio5", "bio6", "bio12"),
+  biserial.cor = NULL,
+  verbose = TRUE
+)
+
+#3, biserial.cor is provided
+#variables are processed according to their priority.
+vif.auto.out <- s_vif_auto(
+  training.df = virtualSpeciesPB,
+  select.cols = NULL,
+  omit.cols = c("x", "y", "presence"),
+  preference.order = NULL,
+  biserial.cor = biserial.cor,
+  verbose = TRUE
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 1 testing importASC ---------------------------
 library(raster)
 x <- importASC(
@@ -104,33 +211,27 @@ selected.vars <- autoVIF(
 selected.vars
 
 # 5 testing corPB -------------------------------------------------------
+library(SDMworkshop)
 data(virtualSpeciesPB)
-cPB <- corPB(
-x = virtualSpeciesPB,
-presence.column = "presence",
-variables = c("bio1", "bio5", "bio6")
-)
-cPB
 
 #autoVIF can also take the output of corPB
 #as try.to.keep argument, as follows:
 data(virtualSpeciesPB)
-data("europe2000")
-df <- raster::as.data.frame(europe2000[[c("bio1", "bio5", "bio6", "bio11", "bio12")]])
 
-cPB <- SDMworkshop::corPB(
-x = virtualSpeciesPB,
-presence.column = "presence",
-variables = c("bio1", "bio5", "bio6", "bio11", "bio12")
+cPB <- s_biserial_cor(
+training.df = virtualSpeciesPB,
+response.col = "presence",
+select.cols = c("bio1", "bio5", "bio6", "bio11", "bio12")
 )
 
 #note that cPB$df$variable is ordered from
 #higher to lower biserial correlation
 #higher biserial correlation is linked
 #to higher predictive importance
-selected.vars <- SDMworkshop::autoVIF(
- x = df,
- try.to.keep = cPB$df$variable,
+selected.vars <- s_vif_auto(
+ training.df = virtualSpeciesPB,
+ select.cols = cPB$df$variable,
+ omit.cols = c("x", "y", "presence"),
  verbose = TRUE
 )
 selected.vars
@@ -220,31 +321,15 @@ restricted.background <- prepareTrainingData(
 )
 
 # 6 correlationDendrogram -----------------------------------------------------ç
-data("virtualSpeciesPB")
 
-bis.cor <- biserialCorrelation(
-  x = virtualSpeciesPB,
-  exclude.variables = c("x", "y"),
-  plot = TRUE
-)
-
-selected.vars <- correlationDendrogram(
-  x = virtualSpeciesPB,
-  variables = NULL,
-  exclude.variables = c("x", "y", "presence"),
-  correlation.threshold = 0.5,
-  automatic.selection = TRUE,
-  biserialCorrelation.output = bis.cor,
-  label.size = 6
-)
 
 #auto version
-selected.vars <- autoCorrelationDendrogram(
-  x = virtualSpeciesPB,
-  exclude.variables = c("x", "y", "presence"),
-  correlation.threshold = 0.25,
-  biserialCorrelation.output = bis.cor,
-  label.size = 6
+selected.vars <- s_cor_auto(
+  training.df = virtualSpeciesPB,
+  e.omit = c("x", "y", "presence"),
+  max.cor = 0.25,
+  bis.cor = bis.cor,
+  text.size = 6
 )
 
 # 7 autoSelectVariables -------------------------------------------------------
@@ -269,7 +354,7 @@ x <- plotUseAvailability(
 )
 
 
-# 9 import4D -----------------------------
+# 9 import4D  and dfFrom4D-----------------------------
 
 folder <- "/home/blas/Dropbox/GITHUB/R_packages/SDMworkshop/example_data/by_file"
 dynamic.vars <- c("chl", "cufes", "sst", "tsm")
@@ -348,3 +433,9 @@ x <- import4D(
 plot(x[[1]])
 
 x.df <- dfFrom4D(x = x)
+
+
+# 10 extract4D ----------------------------------------
+library(readr)
+presence <- read_delim("example_data/presence.csv",
+                       ";", escape_double = FALSE, trim_ws = TRUE)

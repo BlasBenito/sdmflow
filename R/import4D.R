@@ -251,9 +251,7 @@ import4D <- function(
     #to data.frame
     if(to.data.frame == TRUE){
 
-       output.df <- dfFrom4D(x = output.list)
-
-       return(output.df)
+      output.list <- dfFrom4D(x = output.list)
 
     }
 

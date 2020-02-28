@@ -2,11 +2,11 @@
 #'
 #' @description Computes the biserial correlation between presence and background data for a set of predictors. A high biserial correlation for a given predictor indicates that the distributions of the presence and background records are separated enough in the space of predictor values to suggest that the predictor is a good candidate for a species distribution model.
 #'
-#' @usage biserialCorrelation(
-#'   x,
-#'   presence.column = "presence",
-#'   variables = NULL,
-#'   exclude.variables = NULL,
+#' @usage s_biserial_cor(
+#'   training.df,
+#'   response.col = "presence",
+#'   select.cols = NULL,
+#'   omit.cols = c("x", "y"),
 #'   axis.text.size = 6,
 #'   legend.text.size = 12,
 #'   strip.text.size = 10,
@@ -15,10 +15,10 @@
 #'   plot = TRUE
 #')
 #'
-#' @param x A data frame with a presence column with 1 indicating presence and 0 indicating background, and columns with predictor values.
-#' @param presence.column Character, name of the presence column.
-#' @param variables Character vector, names of the columns representing predictors. If \code{NULL}, all numeric variables but \code{presence.column} are considered.
-#' @param exclude.variables Character vector, variables to exclude from the analysis.
+#' @param training.df A data frame with a presence column with 1 indicating presence and 0 indicating background, and columns with predictor values.
+#' @param response.col Character, name of the presence column.
+#' @param select.cols Character vector, names of the columns representing predictors. If \code{NULL}, all numeric variables but \code{response.col} are considered.
+#' @param omit.cols Character vector, variables to exclude from the analysis.
 #' @param axis.text.size Numeric, size of the axis labels.
 #' @param legend.text.size Numeric, size of the legend labels.
 #' @param strip.text.size Numeric, size of the panel names.
@@ -36,37 +36,48 @@
 #'
 #' @examples
 #' data(virtualSpeciesPB)
-#' cPB <- biserialCorrelation(
-#'   x = virtualSpeciesPB,
-#'   presence.column = "presence",
-#'   variables = c("bio1", "bio5", "bio6")
+#' cPB <- s_biserial_cor(
+#'   training.df = virtualSpeciesPB,
+#'   response.col = "presence",
+#'   select.cols = c("bio1", "bio5", "bio6")
 #' )
 #'
 #' @author Blas Benito <blasbenito@gmail.com>
 #' @export
-biserialCorrelation <- function(x, presence.column = "presence", variables = NULL, exclude.variables = NULL, axis.text.size = 6, legend.text.size = 12, strip.text.size = 10, point.size = 1, line.size = 1, plot = TRUE){
+s_biserial_cor <- function(
+  training.df,
+  response.col = "presence",
+  select.cols = NULL,
+  omit.cols = c("x", "y"),
+  axis.text.size = 6,
+  legend.text.size = 12,
+  strip.text.size = 10,
+  point.size = 1,
+  line.size = 1,
+  plot = TRUE
+  ){
+
+  #keeping numeric columns only and removing NA
+  training.df <-
+    training.df[, unlist(lapply(training.df, is.numeric))] %>%
+    na.omit()
 
   #getting variables
-  if(is.null(variables) == TRUE){
-    variables <- colnames(x)[colnames(x) != presence.column]
+  if(is.null(select.cols) == TRUE){
+    select.cols <- colnames(training.df)[colnames(training.df) != response.col]
   }
-  if(is.null(exclude.variables) == FALSE){
-    variables <- variables[!(variables %in% exclude.variables)]
+  if(is.null(omit.cols) == FALSE){
+    select.cols <- select.cols[!(select.cols %in% omit.cols)]
   }
 
   #subsetting x
-  x <- x[, c(presence.column, variables)]
-
-  #keeping numeric columns only and removing NA
-  x <-
-    x[, unlist(lapply(x, is.numeric))] %>%
-    na.omit()
+  training.df <- training.df[, c(response.col, select.cols)]
 
   #to long format
   x.long <-
-    x %>%
+    training.df %>%
     tidyr::pivot_longer(
-    cols = variables,
+    cols = tidyselect::all_of(select.cols),
     names_to = "variable",
     values_to = "value"
   ) %>%
@@ -74,7 +85,7 @@ biserialCorrelation <- function(x, presence.column = "presence", variables = NUL
     dplyr::rename(presence = 1)
 
   #presence to factor for easier plotting
-  x.long[, presence.column] <- factor(x.long[, presence.column])
+  x.long[, response.col] <- factor(x.long[, response.col])
 
   #plotea primero
   biserial.plot <- ggplot2::ggplot(
@@ -117,19 +128,19 @@ biserialCorrelation <- function(x, presence.column = "presence", variables = NUL
 
   #dataframe to store results
   biserial.correlation <- data.frame(
-    variable = variables,
+    variable = select.cols,
     R2 = NA,
     p = NA,
     stringsAsFactors = FALSE
   )
 
   #iterates through variables
-  for(variable in variables){
+  for(variable in select.cols){
 
     #computes correlation
     temp.cor <- cor.test(
-      x[, presence.column],
-      x[, variable]
+      training.df[, response.col],
+      training.df[, variable]
       )
 
     #stores outcome

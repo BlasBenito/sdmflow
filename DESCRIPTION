@@ -1,4 +1,4 @@
-Package: SDMworkshop
+Package: sdmflow
 Type: Package
 Title: Streamlining the Development of Species Distribution Models
 Version: 0.1.0
