@@ -12,7 +12,7 @@
 #' @param training.df A training data frame. Non-numeric columns are excluded from the analysis.
 #' @param select.cols Character vector, names of the columns which VIF wants to be assessed. If \code{NULL}, all numeric variables but \code{presence.column} are considered. It is recommended to use the variable order of the \code{variable} column from the data frame output of \code{\link{s_biserial_cor}}.
 #' @param omit.cols Character vector, variables to exclude from the analysis. Defaults to \code{c("x", "y", "presence")}.
-#' @param preference.order Character vector, column names of \code{training.df} in an order of selection priority desired by the user. For example, if \code{preference.order = c("bio1", "bio2", "bio3)}, the algorithm will first compute vif for all variables in \code{training.df} not included in \code{preference.order}, and remove on each step the variable with a higher vif. Then, the same operation is applied to the variables in \code{preference.order}, but removing always the variable with the lowest priority instead of the variable with the higher vif. Finally, all variables resulting from both vif analyses are grouped together, and a new vif analysis is performed, removing first the variables not in \code{preference.order}. In summary, this option will try to preserve a set of variables as long as their vif values allow it. Use this version if you have an especial interest in preserving some particular variables. This option is incompatible with the argument \code{biserial.cor} (see below).
+#' @param preference.order Character vector, column names of \code{training.df} in an order of selection priority desired by the user. For example, if \code{preference.order = c("bio1", "bio2", "bio3")}, the algorithm will first compute vif for all variables in \code{training.df} not included in \code{preference.order}, and remove on each step the variable with a higher vif. Then, vif is computed iteratively on the variables in \code{preference.order}, but removing always the variable with the lowest priority (instead of the variable with the higher vif). Finally, all variables resulting from both vif analyses are grouped together, and a new vif analysis is performed, removing first the variables not in \code{preference.order}. In summary, this option will try to preserve a set of variables as long as their vif values allow it. This option is incompatible with the argument \code{biserial.cor} (see below).
 #' @param biserial.cor List, output of the function \code{\link{s_biserial_cor}}. Its R-squared scores are used to select variables. In fact, the column "variable" of the data frame within \code{biserial.cor} is used as input for the argument \code{preference.order} explained above. This is just a convenient way to set the priority in variable selection according to the output of \code{s_biserial_cor}.
 #' @param verbose Boolean, defaults to TRUE. Triggers messages describing what variables are being removed.
 #'
@@ -30,7 +30,7 @@
 #'selected.vars
 #'
 #'#s_vif_auto() can also take the output of SDMworkshop::s_biserial_cor
-#'#as select.cols argument, as follows:
+#'#as biserial.cor argument, as follows:
 #' data(virtualSpeciesPB)
 #'
 #' biserial.cor.output <- SDMworkshop::s_biserial_cor(

@@ -47,7 +47,7 @@ s_auto <- function(
   ){
 
   #computes biserial correlation
-  bis.cor <- s_biserial_cor(
+  biserial.cor <- s_biserial_cor(
     training.df = training.df,
     response.col = response.col,
     select.cols = select.cols,
@@ -59,7 +59,7 @@ s_auto <- function(
   omit.cols <- c(omit.cols, response.col)
 
   #gets selected variables
-  old.selected.variables <- bis.cor$df[bis.cor$df$p < 0.05, "variable"]
+  old.selected.variables <- biserial.cor$df[biserial.cor$df$p < 0.05, "variable"]
 
   #selectes variables by their bivariate correlation
   new.selected.variables <- s_cor_auto(
@@ -67,14 +67,14 @@ s_auto <- function(
     select.cols = old.selected.variables,
     omit.cols = omit.cols,
     max.cor = 0.50,
-    bis.cor = bis.cor,
+    biserial.cor = biserial.cor,
     plot = FALSE
   )
 
   #generates try.to.keep vector
-  try.to.keep <- bis.cor$df[bis.cor$df$variable %in% new.selected.variables, ]$variable
+  try.to.keep <- biserial.cor$df[biserial.cor$df$variable %in% new.selected.variables, ]$variable
   if(length(try.to.keep) == 0){
-    try.to.keep <- bis.cor$df$variable
+    try.to.keep <- biserial.cor$df$variable
   }
 
   #autovif
@@ -88,7 +88,7 @@ s_auto <- function(
   if(plot == TRUE){
     s_cor(
       training.df = training.df[, selected.variables],
-      bis.cor = bis.cor,
+      biserial.cor = biserial.cor,
       plot = TRUE,
       text.size = text.size
     )
