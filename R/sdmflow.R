@@ -139,7 +139,7 @@
 #' @name virtualSpecies
 #' @format Named list.
 #' @references Leroy B, Meynard CN, Bellard C, Courchamp F (2015). “virtualspecies, an R package to generate virtual species distributions.” Ecography. doi: 10.1111/ecog.01388.
-"virtualSpecies"
+"virtual.species"
 
 
 #' Presence and background data for a virtual species
@@ -150,7 +150,7 @@
 #' @keywords datasets
 #' @name virtualSpeciesPB
 #' @format Data frame.
-"virtualSpeciesPB"
+"virtual.species.training"
 
 #' @import tibble dplyr ggplot2 leaflet virtualspecies
 NULL

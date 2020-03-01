@@ -163,6 +163,7 @@ s_biserial_cor <- function(
   output.list <- list()
   output.list$plot <- biserial.plot
   output.list$df <- biserial.correlation
+  class(output.list) <- c("list", "s_biserial_cor")
 
   return(output.list)
 

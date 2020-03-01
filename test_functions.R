@@ -1,14 +1,18 @@
 # TESTING NEW FUNCTIONS
-data("virtualSpeciesPB")
+library(sdmflow)
+library(ggplot2)
+data("virtual.species.training")
 
 #s_biserial_cor
 #---------------
 biserial.cor <- s_biserial_cor(
-    training.df = virtualSpeciesPB,
+    training.df = virtual.species.training,
     response.col = "presence",
-    omit.cols = c("x", "y")
+    omit.cols = c("x", "y"),
+    plot = FALSE
   )
 biserial.cor$df
+class(biserial.cor)
 
 #s_cor
 #---------------
@@ -20,7 +24,7 @@ s_cor(
 #s_cor with biserial.cor argument
 #---------------
 s.cor.out <- s_cor(
-  training.df = virtualSpeciesPB,
+  training.df = virtual.species.training,
   omit.cols = c("x", "y", "presence"),
   biserial.cor = biserial.cor
 )
@@ -30,7 +34,7 @@ s.cor.out$vars
 #s_cor_auto
 #---------------
 s.cor.out <- s_cor_auto(
-  training.df = virtualSpeciesPB,
+  training.df = virtual.species.training,
   omit.cols = c("x", "y", "presence"),
   biserial.cor = biserial.cor,
   max.cor = 0.7
@@ -45,7 +49,7 @@ s.cor.out$vars
 #1. only training df and omit.cols is provided
 #the analysis is done for all numeric variables not in omit.cols, without taking any order of preference into account
 vif.auto.out <- s_vif_auto(
-  training.df = virtualSpeciesPB,
+  training.df = virtual.species.training,
   select.cols = NULL,
   omit.cols = c("x", "y", "presence"),
   preference.order = NULL,
@@ -53,11 +57,23 @@ vif.auto.out <- s_vif_auto(
   verbose = TRUE
 )
 
-#2, preference.order is provided
+
+#2, biserial.cor is provided
+#variables are processed according to their priority.
+vif.auto.out <- s_vif_auto(
+  training.df = virtual.species.training,
+  select.cols = NULL,
+  omit.cols = c("x", "y", "presence"),
+  preference.order = NULL,
+  biserial.cor = biserial.cor,
+  verbose = TRUE
+)
+
+#3, preference.order is provided
 #variables in preference.order are processed separately from variables not in preference.order
 #the former are selected according to priority, the latter are selected by removing those with maximum vif on each step.
 vif.auto.out <- s_vif_auto(
-  training.df = virtualSpeciesPB,
+  training.df = virtual.species.training,
   select.cols = NULL,
   omit.cols = c("x", "y", "presence"),
   preference.order = c("bio1", "bio5", "bio6", "bio12"),
@@ -65,16 +81,7 @@ vif.auto.out <- s_vif_auto(
   verbose = TRUE
 )
 
-#3, biserial.cor is provided
-#variables are processed according to their priority.
-vif.auto.out <- s_vif_auto(
-  training.df = virtualSpeciesPB,
-  select.cols = NULL,
-  omit.cols = c("x", "y", "presence"),
-  preference.order = NULL,
-  biserial.cor = biserial.cor,
-  verbose = TRUE
-)
+
 
 
 

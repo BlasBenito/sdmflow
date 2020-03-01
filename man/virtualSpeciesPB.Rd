@@ -3,10 +3,11 @@
 \docType{data}
 \name{virtualSpeciesPB}
 \alias{virtualSpeciesPB}
+\alias{virtual.species.training}
 \title{Presence and background data for a virtual species}
 \format{Data frame.}
 \usage{
-virtualSpeciesPB
+virtual.species.training
 }
 \description{
 Dataframe with 8344 observations and 34 variables containing presence records of a virtual species and background data. Each record contains the latitude, longitude, and values of 31 predictive variables, along with a presence column with 1 indicating presence, and 0 indicating background. This data is ready for model fitting.

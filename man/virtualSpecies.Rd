@@ -3,10 +3,11 @@
 \docType{data}
 \name{virtualSpecies}
 \alias{virtualSpecies}
+\alias{virtual.species}
 \title{Named list describing a virtual species.}
 \format{Named list.}
 \usage{
-virtualSpecies
+virtual.species
 }
 \description{
 Named list with 5 named slots containing a description of a virtual species generated with the function \code{\link{makeVirtualSpecies}}, which depends on the function \code{\link[virtualspecies]{generateSpFromFun}} (Leroy et al. 2015).
