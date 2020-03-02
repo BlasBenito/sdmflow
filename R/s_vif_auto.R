@@ -20,32 +20,39 @@
 #'
 #' @examples
 #' \dontrun{
-#'data("virtualSpeciesPB")
 #'
-#'selected.vars <- s_vif_auto(
-#'  training.df = virtualSpeciesPB,
-#'  select.cols = c("bio5", "bio6", "bio1", "bio12"),
-#'  verbose = TRUE
-#')
-#'selected.vars
+#' #1. only training.df and omit.cols are provided
+#' #variables with max vif are removed on each step
 #'
-#'#s_vif_auto() can also take the output of SDMworkshop::s_biserial_cor
-#'#as biserial.cor argument, as follows:
-#' data(virtualSpeciesPB)
-#'
-#' biserial.cor.output <- SDMworkshop::s_biserial_cor(
-#' training.df = virtualSpeciesPB,
-#' response.col = "presence",
-#' select.cols = c("bio1", "bio5", "bio6")
+#' vif.auto.out <- s_vif_auto(
+#'   training.df = virtual.species.training
 #' )
 #'
-#' #using the output of s_biserial_cor() to prioritize variable selection
-#' selected.vars <- SDMworkshop::s_vif_auto(
-#'  training.df = df,
-#'  biserial.cor = biserial.cor.output,
-#'  verbose = TRUE
-#')
-#'selected.vars
+#'
+#' #2, biserial.cor is provided
+#' #variables are processed according to the
+#' #priority established by s_biserial_cor()
+#'
+#' biserial.cor <- s_biserial_cor(
+#'   training.df = virtual.species.training,
+#'   response.col = "presence",
+#'   omit.cols = c("x", "y"),
+#'   plot = FALSE
+#' )
+#'
+#' vif.auto.out <- s_vif_auto(
+#'   training.df = virtual.species.training,
+#'   biserial.cor = biserial.cor
+#' )
+#'
+#' #3, preference.order is provided
+#' #variables in preference.order are selected by preference
+#' #the other variables are selected by removing those with max vif
+#'
+#' vif.auto.out <- s_vif_auto(
+#'   training.df = virtual.species.training,
+#'   preference.order = c("bio1", "bio5", "bio6", "bio12")
+#' )
 #'
 #'}
 #'
@@ -82,305 +89,88 @@ s_vif_auto <- function(
     training.df[, unlist(lapply(training.df, is.numeric))] %>%
     na.omit()
 
-
-  #OPTION 1: REMOVING THE VARIABLE WITH HIGHER VIF ON EACH STEP
-  #--------------------------------------------------
-  if(is.null(preference.order) == TRUE & is.null(biserial.cor) == TRUE){
-
-    #initializing selected vars
-    selected.vars <- colnames(training.df)
-
-    #message
-    if(verbose == TRUE){cat("Removed variables: ")}
-
-    #computes vif on selected.vars if there's more than one variable
-    if(length(selected.vars) > 1){
-
-      #computes vif
-      repeat {
-
-        #computes vif
-        vif.df <- .vif_to_df(x = training.df[, selected.vars])
-
-        #selects variables with vif lower than 5
-        var.to.remove <-
-          vif.df %>%
-          dplyr::filter(vif > 5) %>%
-          dplyr::filter(vif == max(vif)) %>%
-          dplyr::slice(1) %>%
-          dplyr::select(variable) %>%
-          as.character()
-
-        #if the first row contains a vif higher than 5
-        if(var.to.remove != "character(0)"){
-
-          #updates select.cols
-          if(verbose == TRUE){cat(paste(var.to.remove, ", ", sep = ""))}
-          selected.vars <- selected.vars[selected.vars != var.to.remove]
-
-          #stops if there are less than 3 vars left
-          if(length(selected.vars) == 1){
-            break
-          }
-
-        } else {
-          break
-        } #end of "if(var.to.remove != "character(0)")"
-
-      } #end of repeat
-
-      #output list
-      output.list <- list()
-      output.list$df <- vif.df
-      output.list$vars <- selected.vars
-      class(output.list) <- c("list", "s_vif_auto")
-      return(output.list)
-
-    }#end of if(length(selected.vars) > 1){
-
-  }#end of OPTION 1
-
-
-  #OPTION 2: biserial.cor IS PROVIDED
-  #---------------------------------------------
-  if(inherits(biserial.cor, "s_biserial_cor") == TRUE){
-
-    #computing vif by preference
-    selected.vars <- .vif_by_preference(
-      preference.order = biserial.cor$df$variable,
-      training.df = training.df,
-      verbose = verbose
-    )
-
-    #getting vif data.frame
-    vif.df <- .vif_to_df(x = training.df[, selected.vars])
-
-    #output list
-    output.list <- list()
-    output.list$df <- vif.df[, c("variable", "vif")]
-    output.list$vars <- selected.vars
-    class(output.list) <- c("list", "s_vif_auto")
-    return(output.list)
-
-    }#END OF OPTION 2
-
-
-  #OPTION 3: preference.order IS PROVIDED
-  #----------------------------------------------
-  if(is.null(preference.order) == FALSE){
-
-    #OPTION 3A: PROCESS VARIABLES IN preference.order
-    #----------
-    #subsets to the variables already available in training.df
+  #preparing preference order if provided
+  if (is.null(preference.order) == FALSE){
     preference.order <- preference.order[preference.order %in% colnames(training.df)]
+  }
 
-    #generates preference.df
-    preference <- data.frame(
-      variable = preference.order,
-      preference = 1:length(preference.order),
-      stringsAsFactors = FALSE
-    )
+  #message
+  if(verbose == TRUE){cat("Removed variables: ")}
 
-    #message
-    if(verbose == TRUE){cat("Removed variables: ")}
+  #IF biserial.cor IS NOT PROVIDED
+  if(is.null(biserial.cor) == TRUE){
 
-    #computes vif on selected.vars if there's more than one variable
-    if(length(selected.vars) > 1){
+    #AND preference.order IS NOT PROVIDED
+    if(is.null(preference.order) == TRUE){
 
-      #computes vif on variables preference.order
-      repeat {
+      #OPTION 3: SELECT BY MAX VIF
+      output.list <- .select_by_max_vif(
+        training.df = training.df,
+        verbose = verbose
+      )
 
-        #selects variables with vif lower than 5
-        vif.df <-
-          .vif_to_df(x = training.df[, preference.order]) %>%
-          dplyr::inner_join(y = preference, by = "variable")
+    } else {
 
-        #if the first row contains a vif higher than 5
-        if(max(vif.df$vif) > 5){
+      #OPTION 2: preference.order IS PROVIDED
 
-          #selects variable to remove
-          var.to.remove <-
-            vif.df %>%
-            dplyr::filter(preference == max(preference)) %>%
-            dplyr::slice(1) %>%
-            dplyr::select(variable) %>%
-            as.character()
+      #selecting by preference
+      output.list.by.preference <- .select_by_preference(
+        preference.order = preference.order,
+        training.df = training.df,
+        verbose = verbose
+      )
 
-          #if var.to.remove is valid (non-empty)
-          if(var.to.remove != "character(0)"){
+      #selecting by max vif (variables not in preference.order)
+      output.list.by.max.vif <- .select_by_max_vif(
+        training.df = training.df[, !(colnames(training.df) %in% preference.order)],
+        verbose = verbose
+      )
 
-            #updates select.cols
-            if(verbose == TRUE){cat(paste(var.to.remove, ", ", sep = ""))}
-            selected.vars <- selected.vars[selected.vars != var.to.remove]
+      #merging selected.vars
+      selected.vars <- c(
+        output.list.by.preference$vars,
+        output.list.by.max.vif$vars
+      )
 
-            #stops if there are less than 3 vars left
-            if(length(selected.vars) == 1){
-              break
-            }
+      #vif by preference again
+      output.list <- .select_by_preference(
+        preference.order = selected.vars,
+        training.df = training.df,
+        verbose = verbose
+      )
 
-          } else {#end of "if(var.to.remove != "character(0)")"
-            break
-          }
-
-        } #end if(max(vif.df$vif) > 5){
-
-      } #end of repeat
-
-    #get the ones in training.df
-    preference.order <- preference.order[preference.order %in% colnames(training.df)]
-
-    #getting without preference order
-    selected.vars <- colnames(training.df)[!(colnames(training.df) %in% preference.order)]
     }
-  }#end of OPTION 3
 
-}#END OF FUNCTION
+  } else {
+
+    if(inherits(biserial.cor, "s_biserial_cor") == TRUE){
+
+      #option 1: computing vif by preference
+      output.list <- .select_by_preference(
+        preference.order = biserial.cor$df$variable,
+        training.df = training.df,
+        verbose = verbose
+      )
+
+    } else {
+
+      if(verbose == TRUE){
+
+        stop("Argument biserial cor is not an s_biserial_cor object.")
+
+      }
+
+    }
+
+  }
 
 
+  #message
+  if(verbose == TRUE){cat("Done!")}
+  return(output.list)
 
+}
 
-
-
-
-#
-#
-#
-#
-#
-#   #tries to keep variables in select.cols
-#   #--------------------------------------
-#
-#   #checks if select.cols is in names(training.df)
-#   if(sum(preference.order %in% colnames(training.df)) == length(preference.order)){
-#
-#     #generates preference df
-#     preference <- data.frame(
-#       variable = c(preference.order, colnames(training.df)[!(colnames(training.df) %in% preference.order)]),
-#       preference = c(1:length(preference.order), rep(length(preference.order)+1, length(colnames(training.df)) - length(preference.order))),
-#       stringsAsFactors = FALSE
-#     )
-#
-#     #computes vif on variables in select.cols
-#     #----------------------------------------
-#     repeat {
-#
-#       #selects variables with vif lower than 5
-#       vif.df <-
-#         .vif_to_df(x = training.df[, preference.order]) %>%
-#         dplyr::inner_join(y = preference, by = "variable")
-#
-#       #if the first row contains a vif higher than 5
-#       if(max(vif.df$vif) > 5){
-#
-#         #selects variable to remove
-#         var.to.remove <-
-#           vif.df %>%
-#           dplyr::filter(preference == max(preference)) %>%
-#           dplyr::slice(1) %>%
-#           dplyr::select(variable) %>%
-#           as.character()
-#
-#         #if the first row contains a vif higher than 5
-#         if(var.to.remove != "character(0)"){
-#
-#           #updates select.cols
-#           if(verbose == TRUE){cat(paste(var.to.remove, ", ", sep = ""))}
-#           selected.vars <- selected.vars[selected.vars != var.to.remove]
-#
-#           #stops if there are less than 3 vars left
-#           if(length(selected.vars) == 1){
-#             break
-#           }
-#
-#         } #end of "if(var.to.remove != "character(0)")"
-#
-#       } else {
-#         break
-#       }
-#
-#     } #end of repeat
-#
-#     #end of "if(sum(select.cols %in% colnames(x)) == length(select.cols))"
-#   } else {
-#
-#     #identifies badly defined variables
-#     missing.vars <- select.cols[(select.cols %in% colnames(training.df)) == FALSE]
-#
-#     #message for user
-#     if(length(missing.vars) == 1){
-#       paste(
-#         "The variable ",
-#         missing.vars,
-#         "in the argument select.cols are not column names of x."
-#         ) %>%
-#         message()
-#       stop()
-#     } else {
-#       paste(
-#         "The variables",
-#         paste(
-#           missing.vars,
-#           collapse = ", "
-#           ),
-#         "in the argument select.cols are not column names of x."
-#         ) %>%
-#         message()
-#       stop()
-#     }
-#   } #end of "identifies badly defined variables"
-#
-#
-#   #vif on selected.vars and select.cols
-#   #--------------------------------------
-#
-#   #gets all available variables
-#   selected.vars <- c(select.cols, selected.vars)
-#
-#   #stops if there is only one selected var
-#   if(length(selected.vars) == 1){
-#     if(verbose == TRUE){cat("I'm done!")}
-#     return(selected.vars)
-#     stop()
-#   }
-#
-#   #computes vif
-#   repeat {
-#
-#     #selects variables with vif lower than 5
-#     vif.df <-
-#       .vif_to_df(x = x[, selected.vars]) %>%
-#       dplyr::inner_join(y = preference, by = "variable")
-#
-#     #if the first row contains a vif higher than 5
-#     if(max(vif.df$vif) > 5){
-#
-#       #selects variable to remove
-#       var.to.remove <-
-#         vif.df %>%
-#         dplyr::filter(!(variable %in% select.cols)) %>%
-#         dplyr::filter(vif == max(vif)) %>%
-#         dplyr::slice(1) %>%
-#         dplyr::select(variable) %>%
-#         as.character()
-#
-#       #updates selected.vars
-#       if(verbose == TRUE){cat(paste(var.to.remove, ", ", sep = ""))}
-#       selected.vars <- selected.vars[selected.vars != var.to.remove]
-#
-#       #stops if there are less than 3 vars left
-#       if(length(selected.vars) == 1){
-#         break
-#       }
-#
-#     } else {
-#       selected.vars <- vif.df$variable
-#       break
-#     } #end of "if(max(vif.df$vif) > 5)..."
-#
-#   } #end of repeat
-#
-#   if(verbose == TRUE){cat("I'm done! \n")}
-#   return(selected.vars)
 
 
 #' @export
@@ -401,16 +191,65 @@ s_vif_auto <- function(
 
 
 #' @export
-.vif_by_preference <- function(preference.order, training.df, verbose){
+.select_by_max_vif <- function(training.df, verbose){
+
+  #initializing selected vars
+  selected.vars <- colnames(training.df)
+
+  #computes vif
+  repeat {
+
+    #computes vif
+    vif.df <- .vif_to_df(x = training.df[, selected.vars])
+
+    #selects variables with vif lower than 5
+    var.to.remove <-
+      vif.df %>%
+      dplyr::filter(vif > 5) %>%
+      dplyr::filter(vif == max(vif)) %>%
+      dplyr::slice(1) %>%
+      dplyr::select(variable) %>%
+      as.character()
+
+    #if the first row contains a vif higher than 5
+    if(var.to.remove != "character(0)"){
+
+      #updates select.cols
+      if(verbose == TRUE){cat(paste(var.to.remove, ", ", sep = ""))}
+      selected.vars <- selected.vars[selected.vars != var.to.remove]
+
+      #stops if there are less than 3 vars left
+      if(length(selected.vars) == 1){
+        break
+      }
+
+    } else {
+      break
+    } #end of "if(var.to.remove != "character(0)")"
+
+  } #end of repeat
+
+  #final vif.df
+  vif.df <- .vif_to_df(x = training.df[, selected.vars])
+
+  #output list
+  output.list <- list()
+  output.list$df <- vif.df
+  output.list$vars <- selected.vars
+  class(output.list) <- c("list", "s_vif_auto")
+  return(output.list)
+
+}
+
+
+#' @export
+.select_by_preference <- function(preference.order, training.df, verbose){
 
   #subsets to the variables already available in training.df
   preference.order <- preference.order[preference.order %in% colnames(training.df)]
 
   #initiating selected vars
   selected.vars <- preference.order[1]
-
-  #message
-  if(verbose == TRUE){cat("Removed variables: ")}
 
   #iterates through preference order
   for(i in 2:length(preference.order)){
@@ -430,13 +269,20 @@ s_vif_auto <- function(
 
       #message
       if(verbose == TRUE){cat(paste(new.var, ", ", sep = ""))}
+      next
 
     }
 
   }
 
-  if(verbose == TRUE){cat("Done!")}
+  #final vif.df
+  vif.df <- .vif_to_df(x = training.df[, selected.vars])
 
-  return(selected.vars)
+  #output list
+  output.list <- list()
+  output.list$df <- vif.df[, c("variable", "vif")]
+  output.list$vars <- selected.vars
+  class(output.list) <- c("list", "s_vif_auto")
+  return(output.list)
 
 }

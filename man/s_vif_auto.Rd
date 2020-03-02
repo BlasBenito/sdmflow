@@ -32,32 +32,39 @@ Selects variables within a dataframe that are not correlated with each other, or
 }
 \examples{
 \dontrun{
-data("virtualSpeciesPB")
 
-selected.vars <- s_vif_auto(
- training.df = virtualSpeciesPB,
- select.cols = c("bio5", "bio6", "bio1", "bio12"),
- verbose = TRUE
-)
-selected.vars
+#1. only training.df and omit.cols are provided
+#variables with max vif are removed on each step
 
-#s_vif_auto() can also take the output of SDMworkshop::s_biserial_cor
-#as biserial.cor argument, as follows:
-data(virtualSpeciesPB)
-
-biserial.cor.output <- SDMworkshop::s_biserial_cor(
-training.df = virtualSpeciesPB,
-response.col = "presence",
-select.cols = c("bio1", "bio5", "bio6")
+vif.auto.out <- s_vif_auto(
+  training.df = virtual.species.training
 )
 
-#using the output of s_biserial_cor() to prioritize variable selection
-selected.vars <- SDMworkshop::s_vif_auto(
- training.df = df,
- biserial.cor = biserial.cor.output,
- verbose = TRUE
+
+#2, biserial.cor is provided
+#variables are processed according to the
+#priority established by s_biserial_cor()
+
+biserial.cor <- s_biserial_cor(
+  training.df = virtual.species.training,
+  response.col = "presence",
+  omit.cols = c("x", "y"),
+  plot = FALSE
 )
-selected.vars
+
+vif.auto.out <- s_vif_auto(
+  training.df = virtual.species.training,
+  biserial.cor = biserial.cor
+)
+
+#3, preference.order is provided
+#variables in preference.order are selected by preference
+#the other variables are selected by removing those with max vif
+
+vif.auto.out <- s_vif_auto(
+  training.df = virtual.species.training,
+  preference.order = c("bio1", "bio5", "bio6", "bio12")
+)
 
 }
 
