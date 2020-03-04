@@ -20,7 +20,7 @@ s_biserial_cor(
 \arguments{
 \item{training.df}{A data frame with a presence column with 1 indicating presence and 0 indicating background, and columns with predictor values.}
 
-\item{response.col}{Character, name of the presence column.}
+\item{response.col}{Character, name of the response variable. Usually a presence-background column with ones and zeroes.}
 
 \item{select.cols}{Character vector, names of the columns representing predictors. If \code{NULL}, all numeric variables but \code{response.col} are considered.}
 
@@ -36,7 +36,7 @@ s_biserial_cor(
 
 \item{line.size}{Line width in the biserial correlation plot.}
 
-\item{plot}{Boolean, prints biserial correlation plot if \code{TRUE}.}
+\item{plot}{Boolean, prints biserial correlation plot if \code{TRUE}. Take in mind that plotting thousands of points per variable in \code{training.df} might take some time.}
 }
 \value{
 A named list with two slots named \code{plot} and \code{df}. The former contains a ggplot object with the biserial correlation analysis. The latter is a data frame with the following columns:
@@ -48,15 +48,17 @@ A named list with two slots named \code{plot} and \code{df}. The former contains
 The output data frame is ordered, starting with the higher R2 values.
 }
 \description{
-Computes the biserial correlation between presence and background data for a set of predictors. A high biserial correlation for a given predictor indicates that the distributions of the presence and background records are separated enough in the space of predictor values to suggest that the predictor is a good candidate for a species distribution model.
+Computes the biserial correlation between presence and background data for a set of predictors. For each numeric variable in \code{training.df} seleccted by the user, the weighted linear model  \code{lm(response.col ~ variable, data = training.df, weights = w)} is fitted, where \code{w} is computed with the function \code{\link{m_weights}}. The adjusted R-squared (a.k.a "biserial correlation") and p-values are extracted for each variable, and returned as a data frame. A high biserial correlation for a given predictor indicates that the distributions of the presence and background records are separated enough in the space of the predictor values to suggest that the predictor might be a good candidate variable to fit a species distribution model.
 }
 \examples{
-data(virtualSpeciesPB)
-cPB <- s_biserial_cor(
-  training.df = virtualSpeciesPB,
+data(virtual.species.training)
+biserial.cor <- s_biserial_cor(
+  training.df = virtual.species.training,
   response.col = "presence",
-  select.cols = c("bio1", "bio5", "bio6")
+  select.cols = c("bio1", "bio5", "bio6"),
+  plot = FALSE
 )
+biserial.cor
 
 }
 \author{

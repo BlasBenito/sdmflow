@@ -54,14 +54,14 @@ plotVariable(
 )
 }
 \examples{
-data(virtualSpecies)
+data(virtual.species)
 data(europe2000)
 plotVariable(
  variable = europe2000[["bio1"]],
  option = "B",
  opacity = 0.7,
- points.x = virtualSpecies$observed.presence$x,
- points.y = virtualSpecies$observed.presence$y,
+ points.x = virtual.species$observed.presence$x,
+ points.y = virtual.species$observed.presence$y,
  points.size = 5
 )
 

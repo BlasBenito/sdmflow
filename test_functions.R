@@ -3,6 +3,15 @@ library(sdmflow)
 library(ggplot2)
 data("virtual.species.training")
 
+#s_plot_density
+#TO DO: add response curves
+density.plot <- s_plot_density(
+  training.df = virtual.species.training,
+  response.col = "presence",
+  omit.cols = c("x", "y")
+)
+
+
 #s_biserial_cor
 #---------------
 biserial.cor <- s_biserial_cor(
@@ -76,6 +85,15 @@ vif.auto.out <- s_vif_auto(
 )
 
 
+#s_auto
+#---------------
+s.auto.out <- s_auto(
+  training.df = virtual.species.training,
+  response.col = "presence",
+  omit.cols = c("x", "y"),
+  plot = TRUE,
+  text.size = 6
+)
 
 
 

@@ -1,4 +1,4 @@
-#' Reduces multicollinearity automatically through repeated application of \code{\link{s_cor}}.
+#' Reduces multicollinearity automatically through the repeated application of \code{\link{s_cor}}.
 #'
 #' @description Computes the correlation between all pairs of variables in a training dataset and removes variables until there are no more variables correlated above a given threshold (0.5 Pearson correlation by default). This function requires a \code{\link{s_biserial_cor}} output, and it won't run if the argument remains \code{NULL}.
 #'
@@ -58,27 +58,26 @@ s_cor_auto <- function(
     stop("The argument biserial.cor is empty.")
   }
 
-  #keeping numeric columns only and removing NA
-  training.df <-
-    training.df[, unlist(lapply(training.df, is.numeric))] %>%
-    na.omit()
-
-  #getting variables
-  if(is.null(select.cols) == TRUE){
-    select.cols <- colnames(training.df)
+  #dropping omit.cols
+  if(sum(omit.cols %in% colnames(training.df)) == length(omit.cols)){
+    training.df <-
+      training.df %>%
+      dplyr::select(-tidyselect::all_of(omit.cols))
   }
-  if(is.null(omit.cols) == FALSE){
-    if(sum(omit.cols %in% select.cols) == length(omit.cols)){
-      select.cols <- select.cols[!(select.cols %in% omit.cols)]
+
+  #selecting select.cols
+  if(is.null(select.cols) == FALSE){
+    if(sum(select.cols %in% colnames(training.df)) == length(select.cols)){
+      training.df <-
+        training.df %>%
+        dplyr::select(tidyselect::all_of(select.cols))
     }
   }
 
-  #subsetting x
-  if(sum(select.cols %in% colnames(training.df)) == length(select.cols)){
-    training.df <- training.df[, select.cols]
-  } else {
-    stop("variables must be column names of training.df.")
-  }
+  #getting numeric columns only and removing cases with NA
+  training.df <-
+    training.df[, unlist(lapply(training.df, is.numeric))] %>%
+    na.omit()
 
   #gets selected variables
   old.selected.variables <- biserial.cor$df[biserial.cor$df$p < 0.05, "variable"]
@@ -91,7 +90,7 @@ s_cor_auto <- function(
       training.df = training.df,
       select.cols = old.selected.variables,
       omit.cols = omit.cols,
-      max.cor = 0.50,
+      max.cor = max.cor,
       biserial.cor = biserial.cor,
       plot = FALSE
     )$vars

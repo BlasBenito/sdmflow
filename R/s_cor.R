@@ -1,12 +1,12 @@
 #' Correlation dendrogram to help reduce multicollinearity in a training dataset.
 #'
-#' @description Computes the correlation between all pairs of variables in a training dataset. If a \code{\link{s_biscor}} output is provided, it further selects variables automatically based on the R-squared value obtained by each variable in the biserial correlation analysis.
+#' @description Computes the correlation between all pairs of variables in a training dataset. If a \code{\link{s_biserial_cor}} output is provided, it further selects variables automatically based on the R-squared value obtained by each variable in the biserial correlation analysis.
 #'
 #' @usage s_cor(
 #'   training.df,
 #'   select.cols = NULL,
 #'   omit.cols = c("x", "y", "presence"),
-#'   maximum.cor = 0.5,
+#'   max.cor = 0.5,
 #'   biserial.cor = NULL,
 #'   plot = TRUE,
 #'   text.size = 6
@@ -57,27 +57,26 @@ s_cor <- function(
   #preparing output list
   output.list <- list()
 
-  #keeping numeric columns only and removing NA
-  training.df <-
-    training.df[, unlist(lapply(training.df, is.numeric))] %>%
-    na.omit()
-
-  #getting variables
-  if(is.null(select.cols) == TRUE){
-    select.cols <- colnames(training.df)
+  #dropping omit.cols
+  if(sum(omit.cols %in% colnames(training.df)) == length(omit.cols)){
+    training.df <-
+      training.df %>%
+      dplyr::select(-tidyselect::all_of(omit.cols))
   }
-  if(is.null(omit.cols) == FALSE){
-    if(sum(omit.cols %in% select.cols) == length(omit.cols)){
-      select.cols <- select.cols[!(select.cols %in% omit.cols)]
+
+  #selecting select.cols
+  if(is.null(select.cols) == FALSE){
+    if(sum(select.cols %in% colnames(training.df)) == length(select.cols)){
+      training.df <-
+        training.df %>%
+        dplyr::select(tidyselect::all_of(select.cols))
     }
   }
 
-  #subsetting training.df
-  if(sum(select.cols %in% colnames(training.df)) == length(select.cols)){
-    training.df <- training.df[, select.cols]
-  } else {
-    stop("variables must be column names of training.df.")
-  }
+  #getting numeric columns only and removing cases with NA
+  training.df <-
+    training.df[, unlist(lapply(training.df, is.numeric))] %>%
+    na.omit()
 
   #computes correlation matrix
   cor.matrix <-
@@ -91,7 +90,7 @@ s_cor <- function(
 
   #if biserial.cor == NULL
   #-------------------------------------
-  if(is.null(biserial.cor) == TRUE){
+  if(is.null(biserial.cor) == TRUE | inherits(biserial.cor, "s_biserial_cor") == FALSE){
 
     #generates cluster data
     temp.cluster.data <- ggdendro::dendro_data(temp.cluster)

@@ -1,11 +1,18 @@
-#' Automatic variable selection with variance inflation factor (VIF) analysis
+#' Automatic variance inflation factor (VIF) analysis for variable selection
 #'
-#' @description Selects variables within a dataframe that are not correlated with each other, or with linear combinations of other variables, by using the variance inflation factor (VIF) criteria implemented in the \code{\link[HH]{vif}} function (Heilberger and Holland 2004).
+#' @description Selects variables within a training dataframe that are not linear combinations of other variables by using the variance inflation factor (VIF) criteria implemented in the \code{\link[HH]{vif}} function (Heilberger and Holland 2004). This function has three modes:
+#' \itemize{
+#' \item 1. When the arguments \code{preference.order} and \code{biserial.cor} are \code{NULL}: It removes on on each iteration the variable with the highest VIF until all VIF values are lower than 5. This operation is performed by the hidden function \code{.select_by_max_vif}.
+#' \item 2. When the argument \code{biserial.cor} is provided with an object of the class \code{s_biserial_cor} produced by the function \code{\link{s_biserial_cor}}: It adds variables one by one in the order of preference defined by the \code{s_biserial_cor} object. Any variable increasing the VIF value of any other variable beyond 5 is not added to the final variable selection. This operation is performed by the hidden function \code{.select_by_preference}. This is the most recommended option for this analysis.
+#' \item 3. When the argument \code{preference.order} is provided: The variables in \code{preference.order} are selected as shown above in option 2, the variables not in \code{preference.order} are selected as in option 1, and finally, all variables are put together and selected again as in option 2. This method preserves the variables desired by the user as much as possible.
+#' }
 #'
 #' @usage s_vif_auto(
 #'   training.df,
 #'   select.cols = NULL,
 #'   omit.cols = c("x", "y", "presence"),
+#'   preference.order = NULL,
+#'   biserial.cor = NULL,
 #'   verbose = TRUE
 #' )
 #'
@@ -16,10 +23,12 @@
 #' @param biserial.cor List, output of the function \code{\link{s_biserial_cor}}. Its R-squared scores are used to select variables. In fact, the column "variable" of the data frame within \code{biserial.cor} is used as input for the argument \code{preference.order} explained above. This is just a convenient way to set the priority in variable selection according to the output of \code{s_biserial_cor}.
 #' @param verbose Boolean, defaults to TRUE. Triggers messages describing what variables are being removed.
 #'
-#' @return A character vector with the names of the selected variables.
+#' @return An object of the class \code{s_vif_auto}. It is a list with two slots: "df" and "vars". The former contains a dataframe with the VIF values of the selected variables, while the latter contains the names of the selected variables.
 #'
 #' @examples
 #' \dontrun{
+#'
+#' data(virtual.species.training)
 #'
 #' #1. only training.df and omit.cols are provided
 #' #variables with max vif are removed on each step
@@ -29,7 +38,7 @@
 #' )
 #'
 #'
-#' #2, biserial.cor is provided
+#' #2. biserial.cor is provided
 #' #variables are processed according to the
 #' #priority established by s_biserial_cor()
 #'

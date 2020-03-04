@@ -2,7 +2,7 @@
 % Please edit documentation in R/s_cor_auto.R
 \name{s_cor_auto}
 \alias{s_cor_auto}
-\title{Reduces multicollinearity automatically through repeated application of \code{\link{s_cor}}.}
+\title{Reduces multicollinearity automatically through the repeated application of \code{\link{s_cor}}.}
 \usage{
 s_cor_auto(
 training.df,

@@ -1,6 +1,6 @@
 #' Biserial correlation analysis of presence and background data for variable selection
 #'
-#' @description Computes the biserial correlation between presence and background data for a set of predictors. A high biserial correlation for a given predictor indicates that the distributions of the presence and background records are separated enough in the space of predictor values to suggest that the predictor is a good candidate for a species distribution model.
+#' @description Computes the biserial correlation between presence and background data for a set of predictors. For each numeric variable in \code{training.df} seleccted by the user, the weighted linear model  \code{lm(response.col ~ variable, data = training.df, weights = w)} is fitted, where \code{w} is computed with the function \code{\link{m_weights}}. The adjusted R-squared (a.k.a "biserial correlation") and p-values are extracted for each variable, and returned as a data frame. A high biserial correlation for a given predictor indicates that the distributions of the presence and background records are separated enough in the space of the predictor values to suggest that the predictor might be a good candidate variable to fit a species distribution model.
 #'
 #' @usage s_biserial_cor(
 #'   training.df,
@@ -16,7 +16,7 @@
 #')
 #'
 #' @param training.df A data frame with a presence column with 1 indicating presence and 0 indicating background, and columns with predictor values.
-#' @param response.col Character, name of the presence column.
+#' @param response.col Character, name of the response variable. Usually a presence-background column with ones and zeroes.
 #' @param select.cols Character vector, names of the columns representing predictors. If \code{NULL}, all numeric variables but \code{response.col} are considered.
 #' @param omit.cols Character vector, variables to exclude from the analysis.
 #' @param axis.text.size Numeric, size of the axis labels.
@@ -24,7 +24,7 @@
 #' @param strip.text.size Numeric, size of the panel names.
 #' @param point.size Size of points in the biserial correlation plot.
 #' @param line.size Line width in the biserial correlation plot.
-#' @param plot Boolean, prints biserial correlation plot if \code{TRUE}.
+#' @param plot Boolean, prints biserial correlation plot if \code{TRUE}. Take in mind that plotting thousands of points per variable in \code{training.df} might take some time.
 #'
 #' @return A named list with two slots named \code{plot} and \code{df}. The former contains a ggplot object with the biserial correlation analysis. The latter is a data frame with the following columns:
 #' \itemize{
@@ -35,12 +35,14 @@
 #' The output data frame is ordered, starting with the higher R2 values.
 #'
 #' @examples
-#' data(virtualSpeciesPB)
-#' cPB <- s_biserial_cor(
-#'   training.df = virtualSpeciesPB,
+#' data(virtual.species.training)
+#' biserial.cor <- s_biserial_cor(
+#'   training.df = virtual.species.training,
 #'   response.col = "presence",
-#'   select.cols = c("bio1", "bio5", "bio6")
+#'   select.cols = c("bio1", "bio5", "bio6"),
+#'   plot = FALSE
 #' )
+#' biserial.cor
 #'
 #' @author Blas Benito <blasbenito@gmail.com>
 #' @export
@@ -57,21 +59,30 @@ s_biserial_cor <- function(
   plot = TRUE
   ){
 
-  #keeping numeric columns only and removing NA
+
+  #dropping omit.cols
+  if(sum(omit.cols %in% colnames(training.df)) == length(omit.cols)){
+    training.df <-
+      training.df %>%
+      dplyr::select(-tidyselect::all_of(omit.cols))
+  }
+
+  #selecting select.cols
+  if(is.null(select.cols) == FALSE){
+    if(sum(select.cols %in% colnames(training.df)) == length(select.cols)){
+      training.df <-
+        training.df %>%
+        dplyr::select(tidyselect::all_of(select.cols))
+    }
+  }
+
+  #getting numeric columns only and removing cases with NA
   training.df <-
     training.df[, unlist(lapply(training.df, is.numeric))] %>%
     na.omit()
 
-  #getting variables
-  if(is.null(select.cols) == TRUE){
-    select.cols <- colnames(training.df)[colnames(training.df) != response.col]
-  }
-  if(is.null(omit.cols) == FALSE){
-    select.cols <- select.cols[!(select.cols %in% omit.cols)]
-  }
-
-  #subsetting x
-  training.df <- training.df[, c(response.col, select.cols)]
+  #getting select cols
+  select.cols <- colnames(training.df)[!(colnames(training.df) %in% response.col)]
 
   #to long format
   x.long <-
@@ -134,20 +145,39 @@ s_biserial_cor <- function(
     stringsAsFactors = FALSE
   )
 
+  #computes weights
+  w <- m_weights(training.df[, response.col])
+
   #iterates through variables
   for(variable in select.cols){
 
     #computes correlation
-    temp.cor <- cor.test(
-      training.df[, response.col],
-      training.df[, variable]
-      )
+    # temp.cor <- cor.test(
+    #   training.df[, response.col],
+    #   training.df[, variable]
+    #   )
+
+    temp.cor <- lm(
+      formula = as.formula(paste(response.col, "~", variable)),
+      data = training.df,
+      weights = w
+      ) %>%
+      summary()
+
+    #getting R2
+    R2 <- temp.cor$adj.r.squared
+    R2 <- round(R2, 4)
+
+    #getting p-value
+    f <- temp.cor$fstatistic
+    p <- pf(f[1], f[2], f[3], lower.tail = FALSE)
+    p <- round(p, 4)
 
     #stores outcome
     biserial.correlation[
       biserial.correlation$variable == variable ,
       c("R2", "p")
-      ] <- c(abs(temp.cor$estimate), round(temp.cor$p.value, 4))
+      ] <- c(R2, p)
 
   }
 

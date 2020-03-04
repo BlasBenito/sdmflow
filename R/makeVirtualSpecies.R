@@ -88,7 +88,7 @@ makeVirtualSpecies <- function(variables, niche.parameters = NULL, seed = NULL, 
     }
 
     #applies automatic vif to niche dimensions to keep uncorrelated ones
-    niche.dimensions <- autoVIF(x = variables.df[, niche.dimensions])
+    niche.dimensions <- s_vif_auto(training.df = variables.df[, niche.dimensions])
 
     #list to store niche parameters
     niche.parameters <- list()

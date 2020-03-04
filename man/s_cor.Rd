@@ -8,7 +8,7 @@ s_cor(
   training.df,
   select.cols = NULL,
   omit.cols = c("x", "y", "presence"),
-  maximum.cor = 0.5,
+  max.cor = 0.5,
   biserial.cor = NULL,
   plot = TRUE,
   text.size = 6
@@ -33,7 +33,7 @@ s_cor(
 If \code{biserial.cor} is not NULL, a list with two slots named "dendrogram" (a ggplot2 object) and "selected.variables" with the dendrogram and the character vector with the selected variables. Otherwise it only returns the dendrogram, and the users have to select the variables by themselves.
 }
 \description{
-Computes the correlation between all pairs of variables in a training dataset. If a \code{\link{s_biscor}} output is provided, it further selects variables automatically based on the R-squared value obtained by each variable in the biserial correlation analysis.
+Computes the correlation between all pairs of variables in a training dataset. If a \code{\link{s_biserial_cor}} output is provided, it further selects variables automatically based on the R-squared value obtained by each variable in the biserial correlation analysis.
 }
 \examples{
 \dontrun{

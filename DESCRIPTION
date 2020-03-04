@@ -29,7 +29,8 @@ Imports:
     rgeos,
     sp,
     ggdendro,
-    here
+    here,
+    tidyselect
 Suggests: 
     devtools,
     formatR,

@@ -8,7 +8,8 @@ s_auto(
   training.df,
   response.col = "presence",
   select.cols = NULL,
-  omit.cols = NULL,
+  omit.cols = c("x", "y"),
+  max.cor = 0.5,
   plot = TRUE,
   text.size = 6
 )
@@ -22,27 +23,31 @@ s_auto(
 
 \item{omit.cols}{Character vector, variables to exclude from the analysis.}
 
+\item{max.cor}{Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables. Defaults to 0.5.}
+
 \item{plot}{Boolean, if \code{TRUE}, prints last correlation dendrogram to test the final output.}
 
 \item{text.size}{Numeric, size of the dendrogram labels.}
 }
 \value{
-A character vector with the names of the selected variables.
+An object of class \code{s_auto} with three named slots. The slot \code{plot} contains a correlation dendrogram produced by \code{\link{s_cor}}. The slot \code{df} contains the VIF data frame of the selected variables produced by \code{\link{s_vif_auto}}. The slot \code{vars} is a character vector with the names of the selected variables.
 }
 \description{
-Applies \code{\link{s_biserial_cor}}, \code{\link{s_cor}} (with correlation threshold set to 0.5), and \code{\link{s_auto_vif}} to automatically select a set of non-correlated variables with the higher biserial correlation as possible.
+Applies \code{\link{s_biserial_cor}}, \code{\link{s_vif_auto}}, and \code{\link{s_cor_auto}} to automatically select a set of non-correlated variables with a biserial correlation as high as possible.
 }
 \examples{
 \dontrun{
-data(virtualSpeciesPB)
+data(virtual.species.training)
 selected.vars <- s_auto(
-  training.df = virtualSpeciesPB,
+  training.df = virtual.species.training,
   response.col = "presence",
   omit.cols = c("x", "y")
 )
 selected.vars
-HH::vif(virtualSpeciesPB[, selected.vars])
-cor(virtualSpeciesPB[, selected.vars])
+
+HH::vif(virtual.species.training[, selected.vars])
+cor(virtual.species.training[, selected.vars])
+
 }
 
 }
