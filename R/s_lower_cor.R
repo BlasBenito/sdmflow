@@ -1,12 +1,12 @@
 #' Correlation dendrogram to help reduce multicollinearity in a training dataset.
 #'
-#' @description Computes the correlation between all pairs of variables in a training dataset. If a \code{\link{s_biserial_cor}} output is provided, it further selects variables automatically based on the R-squared value obtained by each variable in the biserial correlation analysis.
+#' @description Computes the correlation between all pairs of variables in a training dataset and computes a cluster through the expression \code{hclust(as.dist(abs(1 - correlation.matrix)))}. If a \code{\link{s_biserial_cor}} output is provided, the clustering is computed as \code{hclust(as.dist(abs(1 - correlation.matrix)), method = "single")}, and the algorithm selects variables automatically based on the R-squared value obtained by each variable in the biserial correlation analysis.
 #'
-#' @usage s_cor(
+#' @usage s_lower_cor(
 #'   training.df,
 #'   select.cols = NULL,
 #'   omit.cols = c("x", "y", "presence"),
-#'   max.cor = 0.5,
+#'   max.cor = 0.75,
 #'   biserial.cor = NULL,
 #'   plot = TRUE,
 #'   text.size = 6
@@ -16,7 +16,7 @@
 #' @param training.df A data frame with a presence column with 1 indicating presence and 0 indicating background, and columns with predictor values.
 #' @param select.cols Character vector, names of the columns representing predictors. If \code{NULL}, all numeric variables but \code{presence.column} are considered.
 #' @param omit.cols Character vector, variables to exclude from the analysis. Defaults to \code{c("x", "y", "presence")}.
-#' @param maximum.cor Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables.
+#' @param max.cor Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables. Defaults to 0.75.
 #' @param biserial.cor List, output of the function \code{\link{s_biserial_cor}}. Its R-squared scores are used to select variables.
 #' @param plot Boolean, prints biserial correlation plot if \code{TRUE}.
 #' @param text.size Numeric, size of the dendrogram labels.
@@ -27,16 +27,16 @@
 #' \dontrun{
 #'data("virtualSpeciesPB")
 #'
-#'biserial.cor <- s_biscor(
+#'biserial.cor <- s_biserial_cor(
 #'  training.df = virtualSpeciesPB,
 #'  omit.cols = c("x", "y")
 #')
 #'
-#'selected.vars <- s_cor(
+#'selected.vars <- s_lower_cor(
 #'  training.df = virtualSpeciesPB,
 #'  select.cols = NULL,
 #'  omit.cols = c("x", "y", "presence"),
-#'  max.cor = 0.5,
+#'  max.cor = 0.75,
 #'  biserial.cor = biserial.cor
 #')$selected.variables
 #'}
@@ -44,11 +44,11 @@
 #' @author Blas Benito <blasbenito@gmail.com>.
 #'
 #' @export
-s_cor <- function(
+s_lower_cor <- function(
   training.df,
   select.cols = NULL,
   omit.cols = c("x", "y", "presence"),
-  max.cor = 0.5,
+  max.cor = 0.75,
   biserial.cor = NULL,
   plot = TRUE,
   text.size = 6
@@ -82,15 +82,15 @@ s_cor <- function(
   cor.matrix <-
     training.df %>%
     cor() %>%
-    abs() %>%
-    as.dist()
-
-  #cluster (converts correlation to distance)
-  temp.cluster <- hclust(1 - cor.matrix)
+    as.dist() %>%
+    abs()
 
   #if biserial.cor == NULL
   #-------------------------------------
   if(is.null(biserial.cor) == TRUE | inherits(biserial.cor, "s_biserial_cor") == FALSE){
+
+    #cluster (converts correlation to distance)
+    temp.cluster <- hclust(1 - cor.matrix)
 
     #generates cluster data
     temp.cluster.data <- ggdendro::dendro_data(temp.cluster)
@@ -148,33 +148,71 @@ s_cor <- function(
 
   } else {
 
-    #gets only significnant variables from biserial correlation ouotput
-    selected.variables <- biserial.cor$df[biserial.cor$df$p < 0.05, "variable"]
+    #cluster (converts correlation to distance)
+    temp.cluster <- hclust(1 - cor.matrix, method = "single")
 
-    #table of groups
-    temp.cluster.groups <- data.frame(group = cutree(temp.cluster, h = 1 - max.cor))
-    temp.cluster.groups$variable <- row.names(temp.cluster.groups)
-    temp.cluster.groups <- temp.cluster.groups[
-      order(
-        temp.cluster.groups$group,
-        decreasing = FALSE
-      ), ]
-    row.names(temp.cluster.groups) <- 1:nrow(temp.cluster.groups)
+    #gets range of heights of the
+    height.range <- round(range(temp.cluster$height), 2)
 
-    #adds biserial correlation to cluster labels
-    temp.cluster.groups$R2 <- biserial.cor$df[
-      match(
-        temp.cluster.groups$variable,     #cluster labels
-        biserial.cor$df$variable #variables in biserial correlation output
-      ), "R2"
-      ]
+    #gets change step
+    height.step <- (max(height.range) - min(height.range))/200
 
-    #gets the maximum of each group
-    selected.variables <-
-      temp.cluster.groups %>%
-      dplyr::group_by(group) %>%
-      dplyr::slice(which.max(R2)) %>%
-      .$variable
+    #initial value for observed.max.cor
+    observed.max.cor <- 1
+
+    #iterator counter
+    i <- 0
+
+    #iterations to find right height
+    while(observed.max.cor > max.cor){
+
+      #plus one iteration
+      i <- i + 1
+
+      #computes height cutoff
+      height.cutoff <- min(height.range) + (height.step * i)
+
+      #table of groups
+      temp.cluster.groups <- data.frame(group = cutree(
+        temp.cluster,
+        h = height.cutoff
+        ))
+      temp.cluster.groups$variable <- row.names(temp.cluster.groups)
+      temp.cluster.groups <- temp.cluster.groups[
+        order(
+          temp.cluster.groups$group,
+          decreasing = FALSE
+        ), ]
+      row.names(temp.cluster.groups) <- 1:nrow(temp.cluster.groups)
+
+      #adds biserial correlation to cluster labels
+      temp.cluster.groups$R2 <- biserial.cor$df[
+        match(
+          temp.cluster.groups$variable,     #cluster labels
+          biserial.cor$df$variable #variables in biserial correlation output
+        ), "R2"
+        ]
+
+      #gets the maximum of each group
+      selected.variables <-
+        temp.cluster.groups %>%
+        dplyr::group_by(group) %>%
+        dplyr::slice(which.max(R2)) %>%
+        .$variable
+
+      #computes observed max cor
+      observed.max.cor <-
+        training.df[, selected.variables] %>%
+        cor() %>%
+        as.dist() %>%
+        as.vector() %>%
+        abs() %>%
+        max()
+
+      observed.max.cor
+
+    }#end of while
+
 
     #prepares cluster plotting
     temp.cluster.data <- ggdendro::dendro_data(temp.cluster)
@@ -182,8 +220,8 @@ s_cor <- function(
     #gets R2
     temp.cluster.data$labels$R2 <- biserial.cor$df[
       match(
-        temp.cluster.data$labels$label,     #etiquetas cluster
-        biserial.cor$df$variable #variables biserialCorrelation.output
+        temp.cluster.data$labels$label, #cluster labels
+        biserial.cor$df$variable        #variables biserial.cor
       ), "R2"
       ]
 
@@ -221,7 +259,7 @@ s_cor <- function(
           ),
           size = text.size
         ) +
-        ggplot2::coord_flip(ylim = c(-0.4, 1)) +
+        ggplot2::coord_flip(ylim = c(-(max(height.range)/2), max(height.range))) +
         viridis::scale_colour_viridis(direction = -1, end = 0.9)  +
         ggplot2::theme(
           axis.text.y = element_blank(),
@@ -235,14 +273,14 @@ s_cor <- function(
         ) +
         ggplot2::labs(colour = "Biserial correlation") +
         ggplot2::geom_hline(
-          yintercept = 1 - max.cor,
+          yintercept = height.cutoff,
           col = "red4",
           linetype = "dashed",
           size = 1,
           alpha = 0.5
         ) +
-        ggplot2::scale_y_continuous(breaks = c(1 - max.cor, 0, 0.25, 0.5, 0.75, 1)) +
-        ggplot2::ylab("1 - correlation")
+        ggplot2::scale_y_continuous(breaks = c(1 - (max(height.range) / 2), 0, 0.25, 0.5, 0.75, 1)) +
+        ggplot2::ylab("Correlation difference")
 
       if(plot == TRUE){
         ggplot2::theme_set(cowplot::theme_cowplot())

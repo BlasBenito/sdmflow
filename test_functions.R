@@ -4,6 +4,7 @@ library(ggplot2)
 data("virtual.species.training")
 
 #s_plot_density
+#---------------
 #TO DO: add response curves
 density.plot <- s_plot_density(
   training.df = virtual.species.training,
@@ -25,31 +26,29 @@ class(biserial.cor)
 
 #s_cor
 #---------------
-s_cor(
-  training.df = virtualSpeciesPB,
+s.cor.out <- s_lower_cor(
+  training.df = virtual.species.training,
   omit.cols = c("x", "y", "presence")
 )
 
 #s_cor with biserial.cor argument
-#---------------
 s.cor.out <- s_cor(
   training.df = virtual.species.training,
   omit.cols = c("x", "y", "presence"),
-  biserial.cor = biserial.cor
+  biserial.cor = biserial.cor,
+  max.cor = 0.75
 )
 s.cor.out$plot
 s.cor.out$vars
 
-#s_cor_auto
-#---------------
-s.cor.out <- s_cor_auto(
-  training.df = virtual.species.training,
-  omit.cols = c("x", "y", "presence"),
-  biserial.cor = biserial.cor,
-  max.cor = 0.7
-)
-s.cor.out$plot
-s.cor.out$vars
+cor.matrix <-
+  virtual.species.training[, s.cor.out$vars] %>%
+  cor()
+
+cor.matrix[lower.tri(cor.matrix)] %>%
+  round(2) %>%
+  as.vector() %>%
+  hist()
 
 #s_vif_auto
 #---------------
@@ -57,7 +56,7 @@ s.cor.out$vars
 #scenarios
 #1. only training df and omit.cols is provided
 #the analysis is done for all numeric variables not in omit.cols, without taking any order of preference into account
-vif.auto.out <- s_vif_auto(
+vif.auto.out <- s_lower_vif(
   training.df = virtual.species.training
 )
 
@@ -71,7 +70,7 @@ biserial.cor <- s_biserial_cor(
   plot = FALSE
 )
 
-vif.auto.out <- s_vif_auto(
+vif.auto.out <- s_lower_vif(
   training.df = virtual.species.training,
   biserial.cor = biserial.cor
 )
@@ -79,7 +78,7 @@ vif.auto.out <- s_vif_auto(
 #3, preference.order is provided
 #variables in preference.order are processed separately from variables not in preference.order
 #the former are selected according to priority, the latter are selected by removing those with maximum vif on each step.
-vif.auto.out <- s_vif_auto(
+vif.auto.out <- s_lower_vif(
   training.df = virtual.species.training,
   preference.order = c("bio1", "bio5", "bio6", "bio12")
 )
@@ -91,9 +90,15 @@ s.auto.out <- s_auto(
   training.df = virtual.species.training,
   response.col = "presence",
   omit.cols = c("x", "y"),
+  max.cor = 0.75,
   plot = TRUE,
   text.size = 6
 )
+
+cor(training.df[, s.auto.out$vars]) %>%
+  as.dist() %>%
+  round(2) %>%
+  abs()
 
 
 

@@ -7,7 +7,7 @@
 #' \item 3. When the argument \code{preference.order} is provided: The variables in \code{preference.order} are selected as shown above in option 2, the variables not in \code{preference.order} are selected as in option 1, and finally, all variables are put together and selected again as in option 2. This method preserves the variables desired by the user as much as possible.
 #' }
 #'
-#' @usage s_vif_auto(
+#' @usage s_lower_vif(
 #'   training.df,
 #'   select.cols = NULL,
 #'   omit.cols = c("x", "y", "presence"),
@@ -33,7 +33,7 @@
 #' #1. only training.df and omit.cols are provided
 #' #variables with max vif are removed on each step
 #'
-#' vif.auto.out <- s_vif_auto(
+#' vif.auto.out <- s_lower_vif(
 #'   training.df = virtual.species.training
 #' )
 #'
@@ -49,7 +49,7 @@
 #'   plot = FALSE
 #' )
 #'
-#' vif.auto.out <- s_vif_auto(
+#' vif.auto.out <- s_lower_vif(
 #'   training.df = virtual.species.training,
 #'   biserial.cor = biserial.cor
 #' )
@@ -58,7 +58,7 @@
 #' #variables in preference.order are selected by preference
 #' #the other variables are selected by removing those with max vif
 #'
-#' vif.auto.out <- s_vif_auto(
+#' vif.auto.out <- s_lower_vif(
 #'   training.df = virtual.species.training,
 #'   preference.order = c("bio1", "bio5", "bio6", "bio12")
 #' )
@@ -68,7 +68,7 @@
 #' @author Blas Benito <blasbenito@gmail.com>. The function \code{\link[HH]{vif}} is authored by Richard M. Heiberger <rmh@temple.edu>.
 #' @references Heiberger, Richard M. and Holland, Burt (2004). Statistical Analysis and Data Display: An Intermediate Course with Examples in S-Plus, R, and SAS. Springer Texts in Statistics. Springer. ISBN 0-387-40270-5.
 #' @export
-s_vif_auto <- function(
+s_lower_vif <- function(
   training.df,
   select.cols = NULL,
   omit.cols = c("x", "y", "presence"),

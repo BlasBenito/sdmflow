@@ -1,13 +1,13 @@
 #' Automatic selection of predictive variables for species distribution modeling
 #'
-#' @description Applies \code{\link{s_biserial_cor}}, \code{\link{s_vif_auto}}, and \code{\link{s_cor_auto}} to automatically select a set of non-correlated variables with a biserial correlation as high as possible.
+#' @description Applies \code{\link{s_biserial_cor}}, \code{\link{s_lower_vif}}, and \code{\link{s_lower_cor}} to automatically select a set of non-correlated variables with a biserial correlation as high as possible.
 #'
 #' @usage s_auto(
 #'   training.df,
 #'   response.col = "presence",
 #'   select.cols = NULL,
 #'   omit.cols = c("x", "y"),
-#'   max.cor = 0.5,
+#'   max.cor = 0.75,
 #'   plot = TRUE,
 #'   text.size = 6
 #')
@@ -17,7 +17,7 @@
 #' @param response.col Character, name of the presence column.
 #' @param select.cols Character vector, names of the columns representing predictors. If \code{NULL}, all numeric variables but \code{response.col} are considered.
 #' @param omit.cols Character vector, variables to exclude from the analysis.
-#' @param max.cor Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables. Defaults to 0.5.
+#' @param max.cor Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables. Defaults to 0.75.
 #' @param plot Boolean, if \code{TRUE}, prints last correlation dendrogram to test the final output.
 #' @param text.size Numeric, size of the dendrogram labels.
 #'
@@ -46,7 +46,7 @@ s_auto <- function(
   response.col = "presence",
   select.cols = NULL,
   omit.cols = c("x", "y"),
-  max.cor = 0.5,
+  max.cor = 0.75,
   plot = TRUE,
   text.size = 6
   ){
@@ -64,20 +64,20 @@ s_auto <- function(
   omit.cols <- c(omit.cols, response.col)
 
   #selectes variables by their bivariate correlation
-  cor.auto <- s_cor_auto(
+  cor.auto <- s_lower_cor(
     training.df = training.df,
     select.cols = select.cols,
     omit.cols = omit.cols,
-    max.cor = 0.5,
+    max.cor = max.cor,
     biserial.cor = biserial.cor,
-    plot = FALSE
+    plot = TRUE
   )
 
   #subsets biserial.cor
   biserial.cor$df <- biserial.cor$df[biserial.cor$df$variable %in% cor.auto$vars, ]
 
   #applies s_vif_auto
-  vif.auto <- s_vif_auto(
+  vif.auto <- s_lower_vif(
     training.df = training.df,
     select.cols = select.cols,
     omit.cols = omit.cols,
@@ -91,7 +91,7 @@ s_auto <- function(
 
   #final plot
   if(plot == TRUE){
-    s.cor.plot <- s_cor(
+    s.cor.plot <- s_lower_cor(
       training.df = training.df[, vif.auto$vars],
       plot = TRUE,
       text.size = text.size
