@@ -2,6 +2,46 @@
 library(sdmflow)
 library(ggplot2)
 data("virtual.species.training")
+data("europe2000")
+
+#presence-only data
+presence.only <- o_make_training(
+  xy = virtual.species$observed.presence,
+  variables = europe2000,
+  presence.only = TRUE,
+  plot = TRUE
+)
+
+#background
+background <- o_make_training(
+  xy = virtual.species$observed.presence,
+  variables = europe2000,
+  n,
+  background = TRUE,
+  plot = TRUE
+)
+
+#restricted background
+restricted.background <- o_make_training(
+  xy = virtual.species$observed.presence,
+  variables = europe2000,
+  n,
+  restricted.background = TRUE,
+  restricted.background.buffer = 100,
+  plot = TRUE
+)
+
+#applying thinning
+restricted.background <- o_make_training(
+  xy = virtual.species$observed.presence,
+  variables = europe2000,
+  n = 1000,
+  restricted.background = TRUE,
+  restricted.background.buffer = 100,
+  plot = TRUE,
+  thinning = TRUE,
+  minimum.distance = raster::xres(europe2000)
+)
 
 #s_plot_density
 #---------------

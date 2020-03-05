@@ -2,7 +2,7 @@
 #'
 #' @description Produces "presence-only", "background" and "restricted background" data to fit species distribution models. The background is selected at random within the provided raster brick or stack, while the restricted background is selected within a buffer (usually based on the maximum dispersal distance of the target species) around the presence records. The selection of background points is made by the function \code{\link[dismo]{randomPoints}}, from the \code{dismo} package (Hijmans et al. 2017). The function can also apply thinning to the presence coordinates to reduce spatial autocorrelation through the function \code{\link{reduceSpatialCorrelation}}. To produce pseudo-absences instead of background data, just reduce the argument \code{n} to a number between the number and presences and twice the number of presences.
 #'
-#' @usage prepareTrainingData(
+#' @usage o_make_training(
 #'   xy,
 #'   variables,
 #'   n = 10000,
@@ -30,21 +30,20 @@
 #'
 #' @examples
 #' \dontrun{
-#' data(virtualSpecies)
+#' data(virtual.species)
 #' data(europe2000)
 #'
 #' #presence-only data
-#' presence.only <- prepareTrainingData(
-#'   xy = virtualSpecies$observed.presence,
+#' presence.only <- o_make_training(
+#'   xy = virtual.species$observed.presence,
 #'   variables = europe2000,
-#'   n,
 #'   presence.only = TRUE,
 #'   plot = TRUE
 #' )
 #'
 #' #background
-#' background <- prepareTrainingData(
-#'   xy = virtualSpecies$observed.presence,
+#' background <- o_make_training(
+#'   xy = virtual.species$observed.presence,
 #'   variables = europe2000,
 #'   n,
 #'   background = TRUE,
@@ -52,8 +51,8 @@
 #' )
 #'
 #' #restricted background
-#' restricted.background <- prepareTrainingData(
-#'   xy = virtualSpecies$observed.presence,
+#' restricted.background <- o_make_training(
+#'   xy = virtual.species$observed.presence,
 #'   variables = europe2000,
 #'   n,
 #'   restricted.background = TRUE,
@@ -62,8 +61,8 @@
 #' )
 #'
 #' #applying thinning
-#' restricted.background <- prepareTrainingData(
-#'   xy = virtualSpecies$observed.presence,
+#' restricted.background <- o_make_training(
+#'   xy = virtual.species$observed.presence,
 #'   variables = europe2000,
 #'   n = 1000,
 #'   restricted.background = TRUE,
@@ -77,8 +76,8 @@
 #' @author Blas Benito <blasbenito@gmail.com>. The function \code{\link[dismo]{randomPoints}} is authored by Robert J. Hijmans.
 #' @references Robert J. Hijmans, Steven Phillips, John Leathwick and Jane Elith (2017). dismo: Species Distribution Modeling. R package version 1.1-4. https://CRAN.R-project.org/package=dismo
 #' @export
-prepareTrainingData <- function(
-  xy,
+o_make_training <- function(
+  o.coordinates,
   variables,
   n = 10000,
   presence.only = FALSE,
@@ -109,13 +108,13 @@ prepareTrainingData <- function(
 
   #removing duplicates
   #------------------
-  xy <- xy[!duplicated(xy), ]
+  o.coordinates <- o.coordinates[!duplicated(o.coordinates), ]
 
   #doing thinning
   #---------------
   if(thinning == TRUE){
-    xy <- SDMworkshop::reduceSpatialCorrelation(
-      xy = xy,
+    o.coordinates <- o_thinning(
+      o.coordinates = o.coordinates,
       variables = variables,
       minimum.distance = minimum.distance
     )
@@ -124,10 +123,10 @@ prepareTrainingData <- function(
   #preparing presence
   #------------------
   presence <- data.frame(
-    xy,
+    o.coordinates,
     raster::extract(
       x = variables,
-      y = xy,
+      y = o.coordinates,
       df = TRUE,
       cellnumbers = FALSE
     )
@@ -222,15 +221,15 @@ prepareTrainingData <- function(
     restricted.background.buffer <- as.integer(restricted.background.buffer)
 
     #changing names of xy
-    colnames(xy) <- c("x", "y")
+    colnames(o.coordinates) <- c("x", "y")
 
     #xy to sp
-    sp::coordinates(xy) <- c("x", "y")
-    raster::crs(xy) <- raster::crs(variables)
+    sp::coordinates(o.coordinates) <- c("x", "y")
+    raster::crs(o.coordinates) <- raster::crs(variables)
 
     #generates buffer
     buffer <- dismo::circles(
-      p = xy,
+      p = o.coordinates,
       d = restricted.background.buffer * 1000
       )
     buffer.dissolve <- rgeos::gUnaryUnion(buffer@polygons)

@@ -2,7 +2,7 @@
 #'
 #' @description This function reduces the spatial clustering of a set of presence records. It is intended to reduce spatial autocorrelation, and reduce sampling bias, particularly at larger geographical scales. It takes as input a set of coordinates, a brick or stack of environmental variables, and a minimum distance, and returns a new set of coordinates in which the distance between adjacent points is equal or higher than the established minimum distance. This operation is named "thinning", and helps to reduce the spatial correlation of a presence dataset. This function applies thinning, but preserves the presence records representing the extremes of any of the predictive variables provided.
 #'
-#' @usage reduceSpatialCorrelation(
+#' @usage o_thinning(
 #' xy,
 #' variables,
 #' minimum.distance = NULL,
@@ -21,10 +21,10 @@
 #' @return A data frame with the same columns as \code{xy}, but a lower number of records.
 #'
 #' @examples
-#' data("virtualSpecies")
+#' data("virtual.species")
 #' data(europe2000)
-#' xy.thinned <- reduceSpatialCorrelation(
-#'   xy = virtualSpecies$observed.presence,
+#' xy.thinned <- o_thinning(
+#'   xy = virtual.species$observed.presence,
 #'   variables = europe2000,
 #'   minimum.distance = 4
 #' )
@@ -32,28 +32,35 @@
 #'
 #' #generating datasets with different starting points
 #' #generates a different dataset with different nrow on each run
-#' xy.thinned <- reduceSpatialCorrelation(
-#'   xy = virtualSpecies$observed.presence,
+#' xy.thinned <- o_thinning(
+#'   xy = virtual.species$observed.presence,
 #'   variables = europe2000,
 #'   minimum.distance = 4,
 #    random.start = TRUE
 #' )
-#' nrow(virtualSpecies$observed.presence)
+#' nrow(virtual.species$observed.presence)
 #' nrow(xy.thinned)
 #'
 #' @author Blas Benito <blasbenito@gmail.com>
 #' @export
-reduceSpatialCorrelation = function(xy, variables, minimum.distance = NULL, random.start = FALSE, seed = NULL, verbose = FALSE){
+o_thinning = function(
+  o.coordinates,
+  variables,
+  minimum.distance = NULL,
+  random.start = FALSE,
+  seed = NULL,
+  verbose = FALSE
+  ){
 
   #gets only two columns of the input dataset
-  if(ncol(xy) > 2){xy <- xy[, 1:2]}
+  if(ncol(o.coordinates) > 2){o.coordinates <- o.coordinates[, 1:2]}
 
   #change column names
-  old.column.names <- names(xy)
-  names(xy) <- c("x", "y")
+  old.column.names <- names(o.coordinates)
+  names(o.coordinates) <- c("x", "y")
 
   #removes duplicates
-  xy <- xy[!duplicated(xy), ]
+  o.coordinates <- o.coordinates[!duplicated(o.coordinates), ]
 
   #computes minimum distance between points
   if(is.null(minimum.distance) == TRUE){
@@ -61,39 +68,39 @@ reduceSpatialCorrelation = function(xy, variables, minimum.distance = NULL, rand
     }
 
   #extracts variable values for xy
-  xy <- na.omit(
+  o.coordinates <- na.omit(
     data.frame(
-      xy,
+      o.coordinates,
       raster::extract(
         x = variables,
-        y = xy,
+        y = o.coordinates,
         df = TRUE
       )
     )
   )
 
   #remove column
-  xy$ID <- NULL
+  o.coordinates$ID <- NULL
 
   #generates a data frame with the extreme values of variables
   indices.extreme.values <- vector()
-  for(variable in names(xy)){
-    indices.extreme.values <- c(indices.extreme.values, which.min(xy[, variable]), which.max(xy[, variable]))
+  for(variable in names(o.coordinates)){
+    indices.extreme.values <- c(indices.extreme.values, which.min(o.coordinates[, variable]), which.max(o.coordinates[, variable]))
   }
 
   #removes repeated records
   indices.extreme.values <- unique(indices.extreme.values)
 
   #generates a dataframe with the extreme values
-  xy.extreme.values <- xy[indices.extreme.values, ]
+  xy.extreme.values <- o.coordinates[indices.extreme.values, ]
 
   #removes those from xy
-  xy <- xy[-indices.extreme.values, ]
+  o.coordinates <- o.coordinates[-indices.extreme.values, ]
 
   #applies random reshuffling of xy
   if(random.start == TRUE){
     if(is.null(seed) == FALSE){set.seed(seed)}
-    xy <- xy[sample(nrow(xy)), ]
+    o.coordinates <- o.coordinates[sample(nrow(o.coordinates)), ]
   }
 
   #count rows
@@ -103,7 +110,7 @@ reduceSpatialCorrelation = function(xy, variables, minimum.distance = NULL, rand
   repeat{
 
     #gets the current record
-    f <- xy[row, ]
+    f <- o.coordinates[row, ]
 
     #generates a bounding box around the record
     ymax <- f$y + minimum.distance
@@ -112,23 +119,23 @@ reduceSpatialCorrelation = function(xy, variables, minimum.distance = NULL, rand
     xmin <- f$x - minimum.distance
 
     #selects other records within the bounding box and removes them
-    xy <- xy[!((xy$y <= ymax) & (xy$y >= ymin) & (xy$x <= xmax) & (xy$x >= xmin) & (xy$y != f$y | xy$x != f$x)), ]
+    o.coordinates <- o.coordinates[!((o.coordinates$y <= ymax) & (o.coordinates$y >= ymin) & (o.coordinates$x <= xmax) & (o.coordinates$x >= xmin) & (o.coordinates$y != f$y | o.coordinates$x != f$x)), ]
 
     #writes message
     if(verbose == TRUE){
-      print(paste("Processed rows: ", row, " out of ", nrow(xy), sep=""))
+      print(paste("Processed rows: ", row, " out of ", nrow(o.coordinates), sep=""))
     }
 
     #advances the counter one position
     row <- row+1
 
     #stops when there are no more records left
-    if(row >= nrow(xy)){break}
+    if(row >= nrow(o.coordinates)){break}
   }
 
   #adds the records with extreme values
-  xy <- rbind(xy.extreme.values, xy)[, c("x", "y")]
+  o.coordinates <- rbind(xy.extreme.values, o.coordinates)[, c("x", "y")]
 
-  return(xy)
+  return(o.coordinates)
 
 }
