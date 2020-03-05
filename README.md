@@ -1,4 +1,4 @@
-**Call for collaborators**: I would like this R package to become a collaborative effort, and I am looking for collaborators and/or testers (everyone is welcome!). The idea would be to couple the package development it with at least two collaborative papers: a software note, and an application case highlighting the importance of variable selection and modelling paradigm when building species distribution models.
+**Looking for collaborators**: I would like this R package to become a collaborative effort, and I am looking for collaborators and/or testers (everyone is welcome!). The idea would be to couple the package development it with at least two collaborative papers: a software note, and an application case highlighting the importance of variable selection and modelling paradigm when building species distribution models.
 
 # sdmflow
 
