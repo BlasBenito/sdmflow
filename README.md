@@ -4,7 +4,7 @@
 
 **Work in progress!!**
 
-This R package intends to facilitate the design and execution of scientific workflows oriented to model species distributions over space and time. It particularly focuses on:
+This R package intends to facilitate the design and execution of scientific workflows oriented to model species distributions over space and past-time. It particularly focuses on:
 
 + Providing a consistent modeling grammar.
 + Reducing environment cluttering by providing *ad-hoc* object classes to store results.
