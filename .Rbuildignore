@@ -1,12 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-1_prepara_presencias_y_variables.R
-1_variables.zip
-2_modelos.R
-funciones.R
 prepare_data.R
-test_functions.R
-example_data
-github_key
-github_key.pub
-argument_names.ods
+tests.R
+compile.R
