@@ -4,7 +4,7 @@
 \name{europe2000}
 \alias{europe2000}
 \title{Predictive variables for Europe representing current times.}
-\format{Raster brick with 31 layers.}
+\format{Raster brick with 22 layers.}
 \usage{
 europe2000
 }
@@ -31,33 +31,16 @@ The variables are:
   \item \emph{bio17}: precipitation of driest quarter.
   \item \emph{bio18}: precipitation of warmest quarter.
   \item \emph{bio19}: precipitation of coldest quarter.
-  \item \emph{human_footprint}: intensity of human presence and activities in the range [0, 100] (see \emph{details}).
-  \item \emph{landcover_veg_bare}: percentage of bare cover.
-  \item \emph{landcover_veg_herb}: percentage of herbaceous cover.
-  \item \emph{landcover_veg_tree}: percentage of tree cover.
   \item \emph{ndvi_average}: average normalized vegetation index.
   \item \emph{ndvi_minimum}: minimum normalized vegetation index.
   \item \emph{ndvi_maximum}: maximum normalized vegetation index.
-  \item \emph{sun_rad_average}: yearly average of potential solar radiation, in Wh/(m^2)/day.
-  \item \emph{sun_rad_maximum}: maximum potential solar radiation.
-  \item \emph{sun_rad_minimum}: minimum potential solar radiation.
-  \item \emph{sun_rad_range}: yearly range of solar radiation.
   \item \emph{topo_slope}: topographic slope (º).
-  \item \emph{topo_diversity}: relative measure in the range [0, 100] of the topographic complexity within a given cell (see \emph{details}).
 }
 }
 \details{
 Bioclim variables (\emph{bioXX}) were downloaded from the \emph{Worldclim v1.4} dataset (Hijmans et al. 2005, \url{https://www.worldclim.org/version1}).
 
-The \emph{human_footprint} map was downloaded from SEDAC's \emph{Last of the Wild} dataset, version \emph{v1} (Sanderson et al. 2002, \url{https://sedac.ciesin.columbia.edu/data/collection/wildareas-v1}).
-
-The variables \emph{landcover_veg_XXX} were downloaded form the \emph{Vegetation Continuous Fields} dataset \url{https://modis.gsfc.nasa.gov/data/dataprod/mod44.php}. The \emph{ndvi_X} variables were downloaded from the \emph{Blue Marble} dataset COMPLETE THIS.
-
-The variables \emph{sun_rad_X} were generated with the \emph{r.sun} function (Hofierka 2002) of the GRASS GIS software from the SRTM digital elevation model (Jarvis et al. 2008 \url{https://cgiarcsi.community/data/srtm-90m-digital-elevation-database-v4-1/}). See further details at \url{https://grass.osgeo.org/grass76/manuals/r.sun.html}.
-
 The variable \emph{topo_slope} was generated from the same digital elevation model with the \emph{r.slope.aspect} function of the GRASS GIS software (Hofierkaet al. 2009).
-
-The \emph{topo_diversity} map was computed by reclassifying elevation, slope and aspect maps at 1km resolution into 10 classes each, and summing the number of classes of each map within 20 km around each cell. Results are aggregated at ~20km in the final map.
 }
 \references{
 Hijmans, R.J., S.E. Cameron, J.L. Parra, P.G. Jones and A. Jarvis, 2005. Very high resolution interpolated climate surfaces for global land areas. International Journal of Climatology 25: 1965-1978.

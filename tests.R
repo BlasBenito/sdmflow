@@ -4,6 +4,72 @@ library(ggplot2)
 data("virtual.species.training")
 data("europe2000")
 
+#v_match_rasters
+#---------------------------------
+raster.template <- raster::raster("/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc")
+raster.template.crs <- "+init=epsg:4326"
+
+#if raster template is a path
+x <- v_match_rasters(
+  raster.template = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc"
+  )
+inherits(x, "RasterLayer")
+raster::crs(x)
+
+#if raster template is a raster without crs
+raster.template <- raster::raster("/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc")
+x <- v_match_rasters(
+  raster.template = raster.template
+)
+inherits(x, "RasterLayer")
+raster::crs(x)
+
+#if raster template is a raster with crs
+raster.template <- raster::raster("/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc")
+raster::crs(raster.template) <- "+init=epsg:4326"
+x <- v_match_rasters(
+  raster.template = raster.template
+)
+inherits(x, "RasterLayer")
+raster::crs(x)
+
+#if raster.template.crs is badly defined
+raster.template <- raster::raster("/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc")
+x <- v_match_rasters(
+  raster.template = raster.template,
+  raster.template.crs = "hola"
+)
+inherits(x, "RasterLayer")
+raster::crs(x)
+
+#if raster template is any other object
+x <- v_match_rasters(
+  raster.template = virtual.species.training
+)
+
+#checking argument input.folder
+x <- v_match_rasters(
+  raster.template = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc",
+  raster.template.crs = "+init=epsg:4326", #default option
+  input.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters",
+  output.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters",
+  n.cores = 2
+)
+
+#reading speed: readRDS is way faster!
+system.time(x <- readRDS(file = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters/ndvi.rds"))
+
+system.time(x <- raster::raster("/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc"))
+
+raster::raster("/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters/ndvi.rds")
+
+
+
+
+
+#o_make_training NOT DONE YET!!
+#----------------------------------
+
 #presence-only data
 presence.only <- o_make_training(
   xy = virtual.species$observed.presence,

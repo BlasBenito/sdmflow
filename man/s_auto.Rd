@@ -9,7 +9,7 @@ s_auto(
   response.col = "presence",
   select.cols = NULL,
   omit.cols = c("x", "y"),
-  max.cor = 0.5,
+  max.cor = 0.75,
   plot = TRUE,
   text.size = 6
 )
@@ -23,7 +23,7 @@ s_auto(
 
 \item{omit.cols}{Character vector, variables to exclude from the analysis.}
 
-\item{max.cor}{Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables. Defaults to 0.5.}
+\item{max.cor}{Numeric in the interval [0, 1], maximum Pearson correlation of the selected variables. Defaults to 0.75.}
 
 \item{plot}{Boolean, if \code{TRUE}, prints last correlation dendrogram to test the final output.}
 
@@ -33,7 +33,7 @@ s_auto(
 An object of class \code{s_auto} with three named slots. The slot \code{plot} contains a correlation dendrogram produced by \code{\link{s_cor}}. The slot \code{df} contains the VIF data frame of the selected variables produced by \code{\link{s_vif_auto}}. The slot \code{vars} is a character vector with the names of the selected variables.
 }
 \description{
-Applies \code{\link{s_biserial_cor}}, \code{\link{s_vif_auto}}, and \code{\link{s_cor_auto}} to automatically select a set of non-correlated variables with a biserial correlation as high as possible.
+Applies \code{\link{s_biserial_cor}}, \code{\link{s_lower_vif}}, and \code{\link{s_lower_cor}} to automatically select a set of non-correlated variables with a biserial correlation as high as possible.
 }
 \examples{
 \dontrun{
