@@ -73,17 +73,6 @@ v_match_rasters <- function(
       path = input.folder,
       full.names = TRUE
     ),
-    new.path = NA,
-    old.crs = NA,
-    new.crs = NA,
-    old.x.res = NA,
-    new.x.res = NA,
-    old.y.res = NA,
-    new.y.res = NA,
-    old.extent = NA,
-    new.extent = NA,
-    old.valid.cells = NA,
-    new.valid.cells = NA,
     stringsAsFactors = FALSE
   )
 
@@ -124,9 +113,9 @@ v_match_rasters <- function(
 
   #parallelised loop
   #-------------------------
-  loop.out <- foreach::foreach(
+  report.df.temp <- foreach::foreach(
     i = 1:nrow(report.df),
-    .combine = 'c',
+    .combine = 'rbind',
     .packages = "raster",
     .errorhandling = "pass"
     ) %dopar% {
@@ -141,6 +130,15 @@ v_match_rasters <- function(
         raster::crs(raster.i) <- default.crs
       }
 
+      #getting "old" data
+      old.crs <- as.character(raster::crs(raster.i))
+      old.res <- paste(raster::res(raster.i), collapse = ", ")
+      old.extent <- paste(as.vector(raster::extent(raster.i)), collapse = ", ")
+      old.valid.cells <- length(na.omit(raster.i))
+
+      #first part of the resolution change factor
+      resolution.change.factor.old <- raster::res(raster.i)
+
       #if crss are different
       if(raster::compareCRS(x = raster.i, y = raster.template) == FALSE){
 
@@ -151,16 +149,53 @@ v_match_rasters <- function(
           method = "bilinear"
         )
 
-      } else { #resample
+        #operation type
+        operation <- "raster::projectRaster()"
 
-        raster.i <- raster::resample(
-          x = raster.i,
-          y = raster.template,
-          method = "bilinear"
-        )
+      } else {
+      #crss are equal
 
-      }
+        #rasters don't have the same resolution
+        if(sum(raster::res(raster.i) == raster::res(raster.template)) != 2){
 
+          #resampling raster.i to the resolution of raster.template
+          raster.i <- raster::resample(
+            x = raster.i,
+            y = raster.template,
+            method = "bilinear"
+          )
+
+          #operation type
+          operation <- "raster::resample()"
+
+        } else {
+        #rasters have the same resolution
+
+          #the extents are different
+          if((raster::extent(raster.i) == raster::extent(raster.template)) == FALSE){
+
+            #cropping raster
+            raster.i <- raster::crop(
+              x = raster.i,
+              y = raster.template,
+              snap = "near"
+            )
+
+          #operation type
+          operation <- "raster::crop()"
+
+          } else {
+          #rasters are equal
+
+            operation <- "none"
+
+        }#end of rasters are equal
+
+        }#end of rasters have the same resolution
+
+      }#end of crss are equal
+
+      #naming raster
       names(raster.i) <- raster.i.name
 
       #saving
@@ -176,11 +211,32 @@ v_match_rasters <- function(
         compress = FALSE
         )
 
-    }
+      #getting "new" data
+      new.crs <- as.character(raster::crs(raster.i))
+      new.res <- paste(raster::res(raster.i), collapse = ", ")
+      new.extent <- paste(as.vector(raster::extent(raster.i)), collapse = ", ")
+      new.valid.cells <- length(na.omit(raster.i))
+
+      #second part of the resolution change factor
+      resolution.change.factor.new <- raster::res(raster.i)
+
+      #resolution change factor
+      resolution.change.factor <- resolution.change.factor.new / resolution.change.factor.old
+      resolution.change.factor <- paste(as.vector(round(resolution.change.factor, 4)), collapse = ", ")
+
+      #preparing data for report.df
+      output.vector <- c(old.crs, new.crs, old.res, new.res, resolution.change.factor, old.extent, new.extent, old.valid.cells, new.valid.cells, operation)
+      names(output.vector) <- c("old.crs", "new.crs", "old.res", "new.res", "resolution.change.factor", "old.extent", "new.extent", "old.valid.cells", "new.valid.cells", "operation")
+
+      return(output.vector)
+
+    }# end of parallelised loop
 
   #stopping cluster
   parallel::stopCluster(my.cluster)
 
+  #getting report together
+  report.df <- cbind(report.df, report.df.temp)
 
   #preparing mask
   #--------------------
@@ -212,10 +268,11 @@ v_match_rasters <- function(
     system.time(mask <- calc(x, function(x){x * mask}))
     system.time(mask <- x * mask)
 
-  }
+  }#end of loop
 
+  #stopping raster cluster
   raster::endCluster()
 
+}#end of function
 
-}
 
