@@ -53,8 +53,10 @@ x <- v_match_rasters(
   raster.template.crs = "+init=epsg:4326", #default option
   input.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters",
   output.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters",
-  n.cores = 3
+  n.cores = 3,
+  to.brick = TRUE
 )
+plot(x$data)
 
 #reading speed: readRDS is way faster!
 system.time(x <- readRDS(file = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters/ndvi.rds"))

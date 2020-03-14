@@ -1,3 +1,6 @@
+#' TODO: the function doesn't understand the differences between the units of latlong and utm crss
+#' TODO: the function must crop all layers using as template the layer with the smaller extent, or the layer that fits within the extents of all the other layers
+#' TODO: the function cannot handle rasters with two or more files (as in x.gri and x.grd, which is R's raster format). Checks and exceptions need to be created for those files!
 #' @export
 v_match_rasters <- function(
  raster.template = NULL,
@@ -6,7 +9,7 @@ v_match_rasters <- function(
  output.folder,
  default.crs = "+init=epsg:4326",
  n.cores = NULL,
- verbose = TRUE
+ to.brick = FALSE
 ){
 
   #managing output.folder
@@ -73,6 +76,7 @@ v_match_rasters <- function(
       path = input.folder,
       full.names = TRUE
     ),
+    new.path = NA,
     stringsAsFactors = FALSE
   )
 
@@ -137,7 +141,12 @@ v_match_rasters <- function(
       old.valid.cells <- length(na.omit(raster.i))
 
       #first part of the resolution change factor
-      resolution.change.factor.old <- raster::res(raster.i)
+      resolution.old <- mean(raster::res(raster.i))
+
+      #converts resolution to km if it is lonlat
+      if(raster::isLonLat(raster.i) == TRUE){
+        resolution.old <- resolution.old * 111
+      }
 
       #if crss are different
       if(raster::compareCRS(x = raster.i, y = raster.template) == FALSE){
@@ -218,11 +227,25 @@ v_match_rasters <- function(
       new.valid.cells <- length(na.omit(raster.i))
 
       #second part of the resolution change factor
-      resolution.change.factor.new <- raster::res(raster.i)
+      resolution.new <- mean(raster::res(raster.i))
 
-      #resolution change factor
-      resolution.change.factor <- resolution.change.factor.new / resolution.change.factor.old
-      resolution.change.factor <- paste(as.vector(round(resolution.change.factor, 4)), collapse = ", ")
+      #resolution to km
+      if(raster::isLonLat(raster.i) == TRUE){
+        resolution.new <- resolution.new * 111
+      }
+
+      #putting values together
+      resolution.change.factor <- c(resolution.new, resolution.old)
+
+      #computing fraction max / min
+      resolution.change.factor <- max(resolution.change.factor)[1] / min(resolution.change.factor)[1]
+
+      #changing sign if the new resolution is higher than the old
+      #if new res is lower than old res, then the result is negative
+      #if new res is higher than old res, then the result is positive
+      if(resolution.new > resolution.old){
+        resolution.change.factor <- - resolution.change.factor
+      }
 
       #preparing data for report.df
       output.vector <- c(old.crs, new.crs, old.res, new.res, resolution.change.factor, old.extent, new.extent, old.valid.cells, new.valid.cells, operation)
@@ -238,16 +261,31 @@ v_match_rasters <- function(
   #getting report together
   report.df <- cbind(report.df, report.df.temp)
 
+
   #preparing mask
   #--------------------
 
   #initializing mask
   mask <- raster.template
 
+  #function to propagate nulls
+  propagate.nulls <- function(x){x * mask}
+
   #starting raster cluster
-  raster::beginCluster(n = n.cores)
+  #selecting forking method by platform
+  if(.Platform$OS.type == "windows"){
+    cluster.type <- "PSOCK"
+  } else {
+    cluster.type <- "FORK"
+  }
+  raster::beginCluster(
+    n = n.cores,
+    type = cluster.type
+    )
+
 
   #iterating through raster files
+  #this loop propagates the null cells of all layers into a single mask object
   for(i in 1:nrow(report.df)){
 
     #getting file name
@@ -265,13 +303,83 @@ v_match_rasters <- function(
       )
 
     #computing mask
-    system.time(mask <- calc(x, function(x){x * mask}))
-    system.time(mask <- x * mask)
+    mask <- raster::clusterR(x, propagate.nulls)
+    #mask <- x * mask #faster for small rasters
+
+  }#end of loop
+
+
+  #applying mask
+  #---------------
+
+  #iterating through raster files
+  #this loop propagates the null cells of all layers into a single mask object
+  for(i in 1:nrow(report.df)){
+
+    #getting file name
+    raster.i.name <- report.df[i, "name"]
+
+    #getting path (used twice)
+    raster.i.path <- paste(
+      output.folder,
+      "/",
+      raster.i.name,
+      ".rds",
+      sep = ""
+    )
+
+    #reading RDS
+    x <- readRDS(
+      file = raster.i.path
+    )
+
+    #removing RDS
+    # file.remove(raster.i.path)
+
+    #applying mask
+    x <- raster::mask(
+      x = x,
+      mask = mask
+      )
+
+    #getting new path
+    new.path <- paste(
+      output.folder,
+      "/",
+      raster.i.name,
+      sep = ""
+    )
+
+    #saving new path in report
+    report.df[i, "new.path"] <- new.path
+
+    #saving to raster format
+    raster::writeRaster(
+      x = x,
+      filename = new.path,
+      overwrite = TRUE
+    )
 
   }#end of loop
 
   #stopping raster cluster
   raster::endCluster()
+
+  #generating raster stack
+  output.raster <- raster::stack(report.df$new.path)
+
+  #to brick
+  if(to.brick == TRUE){
+    output.raster <- raster::brick(output.raster)
+  }
+
+  #preparing output list
+  output.list <- list()
+  class(output.list) <- "sdmflow.environment"
+  output.list$metadata$v_match_rasters <- report.df
+  output.list$data <- output.raster
+
+  return(output.list)
 
 }#end of function
 
