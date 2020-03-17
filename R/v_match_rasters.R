@@ -1,6 +1,7 @@
 #' TODO: the function doesn't understand the differences between the units of latlong and utm crss
 #' TODO: the function must crop all layers using as template the layer with the smaller extent, or the layer that fits within the extents of all the other layers
 #' TODO: the function cannot handle rasters with two or more files (as in x.gri and x.grd, which is R's raster format). Checks and exceptions need to be created for those files!
+#' TODO: the cluster preparation could go in a helper function, something like h_cluster_setup()
 #' @export
 v_match_rasters <- function(
  raster.template = NULL,
@@ -66,16 +67,26 @@ v_match_rasters <- function(
     }
   }
 
+  #getting file paths
+  #--------------------------------
+  file.paths <- list.files(
+    path = input.folder,
+    full.names = TRUE
+  )
+
+  #remove cases with a particular extension
+  #remove .grd
+  to.remove <- grep(
+    pattern = ".grd",
+    x = file.paths
+    )
+  file.paths <- file.paths[-to.remove]
+
   #generating report.df
   #--------------------------------
   report.df <- data.frame(
-    name = tools::file_path_sans_ext(
-      list.files(path = input.folder)
-      ),
-    old.path = list.files(
-      path = input.folder,
-      full.names = TRUE
-    ),
+    name = basename(tools::file_path_sans_ext(file.paths)),
+    old.path = file.paths,
     new.path = NA,
     stringsAsFactors = FALSE
   )
@@ -83,7 +94,7 @@ v_match_rasters <- function(
   #preparing parallelized iterations
   #----------------------------------
 
-  #setting number of cores and iterator
+  #setting cluster type
   if(is.null(n.cores) == TRUE){
     n.cores <- parallel::detectCores() - 1
   } else {
@@ -134,19 +145,24 @@ v_match_rasters <- function(
         raster::crs(raster.i) <- default.crs
       }
 
-      #getting "old" data
-      old.crs <- as.character(raster::crs(raster.i))
-      old.res <- paste(raster::res(raster.i), collapse = ", ")
-      old.extent <- paste(as.vector(raster::extent(raster.i)), collapse = ", ")
-      old.valid.cells <- length(na.omit(raster.i))
-
       #first part of the resolution change factor
-      resolution.old <- mean(raster::res(raster.i))
+      old.res <- raster::res(raster.i)
+      old.res.mean <- mean(old.res)
 
       #converts resolution to km if it is lonlat
       if(raster::isLonLat(raster.i) == TRUE){
-        resolution.old <- resolution.old * 111
+        old.res.mean <- old.res.mean * 111
+        old.res <- old.res * 111
+      } else {
+        #resolution from m to km in projected maps
+        old.res.mean <- old.res.mean / 1000
+        old.res <- old.res / 1000
       }
+
+      #getting "old" data
+      old.crs <- as.character(raster::crs(raster.i))
+      old.extent <- paste(round(as.vector(raster::extent(raster.i)), 2), collapse = ", ")
+      old.valid.cells <- length(na.omit(raster.i))
 
       #if crss are different
       if(raster::compareCRS(x = raster.i, y = raster.template) == FALSE){
@@ -196,6 +212,7 @@ v_match_rasters <- function(
           } else {
           #rasters are equal
 
+            #operation type
             operation <- "none"
 
         }#end of rasters are equal
@@ -222,41 +239,66 @@ v_match_rasters <- function(
 
       #getting "new" data
       new.crs <- as.character(raster::crs(raster.i))
-      new.res <- paste(raster::res(raster.i), collapse = ", ")
-      new.extent <- paste(as.vector(raster::extent(raster.i)), collapse = ", ")
+      new.extent <- paste(round(as.vector(raster::extent(raster.i)), 3), collapse = ", ")
       new.valid.cells <- length(na.omit(raster.i))
 
-      #second part of the resolution change factor
-      resolution.new <- mean(raster::res(raster.i))
-
-      #resolution to km
+      #converts resolution to km if it is lonlat
       if(raster::isLonLat(raster.i) == TRUE){
-        resolution.new <- resolution.new * 111
+        new.res <- raster::res(raster.i) * 111
+      } else {
+        #resolution from m to km in projected maps
+        new.res <- raster::res(raster.i) / 1000
       }
 
+      #second part of the resolution change factor
+      new.res.mean <- mean(new.res)
+
       #putting values together
-      resolution.change.factor <- c(resolution.new, resolution.old)
+      res.change.factor <- c(new.res.mean, old.res.mean)
 
       #computing fraction max / min
-      resolution.change.factor <- max(resolution.change.factor)[1] / min(resolution.change.factor)[1]
+      res.change.factor <- max(res.change.factor)[1] / min(res.change.factor)[1]
+      res.change.factor <- res.change.factor
 
       #changing sign if the new resolution is higher than the old
       #if new res is lower than old res, then the result is negative
       #if new res is higher than old res, then the result is positive
-      if(resolution.new > resolution.old){
-        resolution.change.factor <- - resolution.change.factor
+      if(new.res.mean < old.res.mean){
+        res.change.factor <- - res.change.factor
       }
 
       #preparing data for report.df
-      output.vector <- c(old.crs, new.crs, old.res, new.res, resolution.change.factor, old.extent, new.extent, old.valid.cells, new.valid.cells, operation)
-      names(output.vector) <- c("old.crs", "new.crs", "old.res", "new.res", "resolution.change.factor", "old.extent", "new.extent", "old.valid.cells", "new.valid.cells", "operation")
+      output.vector <- c(
+        old.crs,
+        new.crs,
+        paste(round(old.res, 1), collapse = ", "),
+        paste(round(new.res, 1), collapse = ", "),
+        round(res.change.factor, 1),
+        old.extent,
+        NA,
+        old.valid.cells,
+        NA,
+        operation
+        )
+      names(output.vector) <- c(
+        "old.crs",
+        "new.crs",
+        "old.res",
+        "new.res",
+        "res.change.factor",
+        "old.extent",
+        "new.extent",
+        "old.valid.cells",
+        "new.valid.cells",
+        "operation"
+        )
 
       return(output.vector)
 
     }# end of parallelised loop
 
   #stopping cluster
-  parallel::stopCluster(my.cluster)
+  # parallel::stopCluster(my.cluster)
 
   #getting report together
   report.df <- cbind(report.df, report.df.temp)
@@ -267,22 +309,6 @@ v_match_rasters <- function(
 
   #initializing mask
   mask <- raster.template
-
-  #function to propagate nulls
-  propagate.nulls <- function(x){x * mask}
-
-  #starting raster cluster
-  #selecting forking method by platform
-  if(.Platform$OS.type == "windows"){
-    cluster.type <- "PSOCK"
-  } else {
-    cluster.type <- "FORK"
-  }
-  raster::beginCluster(
-    n = n.cores,
-    type = cluster.type
-    )
-
 
   #iterating through raster files
   #this loop propagates the null cells of all layers into a single mask object
@@ -303,18 +329,52 @@ v_match_rasters <- function(
       )
 
     #computing mask
-    mask <- raster::clusterR(x, propagate.nulls)
-    #mask <- x * mask #faster for small rasters
+    mask <- x * mask #faster for small rasters
 
   }#end of loop
 
 
   #applying mask
   #---------------
+#
+#   #setting cluster type
+#   if(is.null(n.cores) == TRUE){
+#     n.cores <- parallel::detectCores() - 1
+#   } else {
+#     if(n.cores > 1){ #several cores
+#       `%dopar%` <- foreach::`%dopar%`
+#     } else { #only one core
+#       `%dopar%` <- foreach::`%do%`
+#       on.exit(`%dopar%` <- foreach::`%dopar%`)
+#     }
+#   }
+#
+#   #selecting forking method by platform
+#   if(.Platform$OS.type == "windows"){
+#     my.cluster <- parallel::makeCluster(n.cores, type="PSOCK")
+#   } else {
+#     my.cluster <- parallel::makeCluster(n.cores, type="FORK")
+#   }
 
-  #iterating through raster files
-  #this loop propagates the null cells of all layers into a single mask object
-  for(i in 1:nrow(report.df)){
+  #register cluster
+  doParallel::registerDoParallel(my.cluster)
+
+  #exporting cluster variables
+  parallel::clusterExport(cl = my.cluster,
+                          varlist = c('mask',
+                                      'report.df',
+                                      'output.folder'
+                          ),
+                          envir = environment()
+  )
+
+  #parallelised iterations through raster files
+  output.df <- foreach::foreach(
+    i = 1:nrow(report.df),
+    .combine = 'rbind',
+    .packages = "raster",
+    .errorhandling = "pass"
+  ) %dopar% {
 
     #getting file name
     raster.i.name <- report.df[i, "name"]
@@ -329,18 +389,18 @@ v_match_rasters <- function(
     )
 
     #reading RDS
-    x <- readRDS(
+    raster.i <- readRDS(
       file = raster.i.path
     )
 
-    #removing RDS
-    # file.remove(raster.i.path)
-
     #applying mask
-    x <- raster::mask(
-      x = x,
+    raster.i <- raster::mask(
+      x = raster.i,
       mask = mask
       )
+
+    #trimming to remove NA borders
+    raster.i <- trim(raster.i)
 
     #getting new path
     new.path <- paste(
@@ -350,37 +410,59 @@ v_match_rasters <- function(
       sep = ""
     )
 
-    #saving new path in report
-    report.df[i, "new.path"] <- new.path
-
     #saving to raster format
     raster::writeRaster(
-      x = x,
+      x = raster.i,
       filename = new.path,
       overwrite = TRUE
     )
 
+    #removing RDS
+    file.remove(raster.i.path)
+
+    #preparing output
+    temp.df <- data.frame(
+    new.extent = paste(
+      round(as.vector(raster::extent(raster.i)), 3),
+      collapse = ", "
+      ),
+    new.valid.cells = length(na.omit(raster.i)),
+    new.path = paste(
+      new.path,
+      ".gri",
+      sep = ""
+    ),
+    stringsAsFactors = FALSE
+    )
+
+    #loop output
+    return(temp.df)
+
   }#end of loop
 
-  #stopping raster cluster
-  raster::endCluster()
+  #stopping cluster
+  parallel::stopCluster(my.cluster)
 
-  #generating raster stack
-  output.raster <- raster::stack(report.df$new.path)
-
-  #to brick
-  if(to.brick == TRUE){
-    output.raster <- raster::brick(output.raster)
-  }
+  #adding output.paths to report.df
+  report.df$new.path <- output.df$new.pat
+  report.df$new.extent <- output.df$new.extent
+  report.df$new.valid.cells <- output.df$new.valid.cells
+  rownames(report.df) <- NULL
 
   #preparing output list
   output.list <- list()
   class(output.list) <- "sdmflow.environment"
-  output.list$metadata$v_match_rasters <- report.df
-  output.list$data <- output.raster
+  output.list$metadata <- report.df
+  output.list$data$stack <- raster::stack(report.df$new.path)
+
+  #to brick
+  if(to.brick == TRUE){
+    output.list$data$brick <- raster::brick(output.list$data$stack)
+  } else {
+    output.list$data$brick <- NULL
+  }
+
 
   return(output.list)
 
 }#end of function
-
-
