@@ -1,7 +1,4 @@
-#' TODO: the function doesn't understand the differences between the units of latlong and utm crss
-#' TODO: the function must crop all layers using as template the layer with the smaller extent, or the layer that fits within the extents of all the other layers
 #' TODO: the function cannot handle rasters with two or more files (as in x.gri and x.grd, which is R's raster format). Checks and exceptions need to be created for those files!
-#' TODO: the cluster preparation could go in a helper function, something like h_cluster_setup()
 #' @export
 v_match_rasters <- function(
  raster.template = NULL,
