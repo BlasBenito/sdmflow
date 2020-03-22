@@ -108,7 +108,7 @@
 
 #' Named list describing a virtual species.
 #'
-#' Named list with 5 named slots containing a description of a virtual species generated with the function \code{\link{makeVirtualSpecies}}, which depends on the function \code{\link[virtualspecies]{generateSpFromFun}} (Leroy et al. 2015).
+#' Named list with 5 named slots containing a description of a virtual species generated with the function \code{makeVirtualSpecies}, which depends on the function \code{\link[virtualspecies]{generateSpFromFun}} (Leroy et al. 2015).
 #' The list slots are:
 #' \itemize{
 #'   \item \emph{niche.dimensions}: vector with the names of the variables in \code{\link{europe2000}} used to define the ecological niche of the virtual species.
@@ -120,7 +120,7 @@
 #'
 #' @docType data
 #' @keywords datasets
-#' @name virtualSpecies
+#' @name virtual.species
 #' @format Named list.
 #' @references Leroy B, Meynard CN, Bellard C, Courchamp F (2015). “virtualspecies, an R package to generate virtual species distributions.” Ecography. doi: 10.1111/ecog.01388.
 "virtual.species"
@@ -132,24 +132,14 @@
 #'
 #' @docType data
 #' @keywords datasets
-#' @name virtualSpeciesPB
+#' @name virtual.species.training
 #' @format Data frame.
 "virtual.species.training"
 
-#' @import tibble dplyr ggplot2 leaflet virtualspecies
-NULL
+#' #@import tibble dplyr ggplot2 leaflet virtualspecies
+#NULL
 
-#' @import utils
-utils::globalVariables(c("vif", "variable", "presence", "value", "layer", "R2", "x", "y", "group", ".", "xend", "yend", "biserial.cor", "label", "..scaled.."))
-
-#' Pipe operator
-#'
-#' See \code{magrittr::\link[magrittr]{\%>\%}} for details.
-#'
-#' @name %>%
-#' @rdname pipe
-#' @keywords internal
-#' @export
-#' @importFrom magrittr %>%
-#' @usage lhs \%>\% rhs
+#' @import doParallel foreach
 NULL
+utils::globalVariables(c("new.path"))
+# utils::globalVariables(c("vif", "variable", "presence", "value", "layer", "R2", "x", "y", "group", ".", "xend", "yend", "biserial.cor", "label", "..scaled.."))

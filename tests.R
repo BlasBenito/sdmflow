@@ -1,8 +1,25 @@
 # TESTING NEW FUNCTIONS
 library(sdmflow)
+library(raster)
 library(ggplot2)
+
+#testing data
+#---------------
 data("virtual.species.training")
+str(virtual.species.training)
+
+data("virtual.species")
+str(virtual.species)
+virtual.species$niche.plot
+
 data("europe2000")
+plot(europe2000)
+
+data("europe21kBP")
+plot(europe21kBP)
+
+data("quercus")
+str(quercus)
 
 #v_match_rasters
 #---------------------------------
@@ -14,10 +31,11 @@ x <- v_match_rasters(
   output.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters",
   n.cores = 6
 )
+x$meta #a data.frame
 class(x)
-inherits(x, "matched.rasters.4D")
+inherits(x, "environmental.data")
+inherits(x, "4D")
 attributes(x)
-x
 
 
 #for 5D data (several folders, each one representing a different time)
@@ -32,7 +50,7 @@ names(x)
 x[["2013"]]
 class(x)
 attributes(x)
-inherits(x, "matched.rasters.5D")
+inherits(x, "5D")
 
 
 #METHOD TO PLOT MATCHED RASTERS (implement this as a plot() method!)

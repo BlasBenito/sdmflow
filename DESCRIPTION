@@ -1,40 +1,16 @@
 Package: sdmflow
 Type: Package
 Title: Streamlining the Development of Species Distribution Models
-Version: 0.1.0
+Version: 0.0.1
 Author: Blas M. Benito
 Maintainer: Blas M. Benito <blasbenito@gmail.com>
-Description: Helps developing species distribution models with functions to easily plot data, select variables, evaluate spatial correlation, apply thinning to presence data. Furthermore, it provides functions to fit and evaluate different models.
+Description: Functions to design species distribution modelling workflows.
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
 Depends: R (>= 3.5.0)
 Imports: 
-    dplyr,
-    tibble,
-    tidyr,
-    ggplot2,
     raster,
-    leaflet,
-    HH,
-    geosphere,
-    ape,
-    data.table,
-    virtualspecies,
-    viridis,
-    cowplot,
-    magrittr,
-    dismo,
-    rgeos,
-    sp,
-    ggdendro,
-    here,
-    tidyselect,
-    tools
-Suggests: 
-    remotes,
-    formatR,
-    kableExtra,
-    knitr,
-    rmarkdown
+    doParallel,
+    foreach

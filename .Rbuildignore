@@ -4,3 +4,5 @@ prepare_data.R
 tests.R
 compile.R
 TODO.md
+R/deprecated
+R/todo

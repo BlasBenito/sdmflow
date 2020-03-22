@@ -7,40 +7,71 @@ library(usethis)
 library(rhub)
 library(pkgdown)
 
-#CHECK RESULTS PAGE
-# https://cran.r-project.org/web/checks/check_results_distantia.html
+#REWRITING COMPILE FILE FROM HERE
 
-#about this
-# http://r-pkgs.had.co.nz/check.html
-# usethis::use_travis()
-#generate readme file
-# usethis::use_readme_rmd()
-
-
-#PREPARE PACKAGE SDMworkshop
-#update help files
+#GENERATE DOCUMENTATION
 roxygen2::roxygenise()
+
+#UPDATE NAMESPACE
+write("importFrom(raster, raster, stack, brick, crs, crop, calc, mask, trim)", file="NAMESPACE", append=TRUE)
+write("importFrom(utils, globalVariables)", file="NAMESPACE", append=TRUE)
+write("importFrom(stats, na.omit)", file="NAMESPACE", append=TRUE)
+
+#CHECK
+devtools::check(cran=TRUE, incoming=TRUE, run_dont_test = TRUE, document=FALSE, build_args="--no-build-vignettes")
+
+#imports
+# dplyr,
+# tibble,
+# tidyr,
+# ggplot2,
+# leaflet,
+# HH,
+# geosphere,
+# ape,
+# data.table,
+# virtualspecies,
+# viridis,
+# cowplot,
+# magrittr,
+# dismo,
+# rgeos,
+# sp,
+# ggdendro,
+# here,
+# tidyselect,
+# tools
+
+#suggests
+# remotes,
+# formatR,
+# kableExtra,
+# knitr,
+# rmarkdown
+
+
+
+#OLD compile (do not delete)
+
+
 write("importFrom(stats, cor.test, na.omit, quantile, rnorm, pf, lm, as.formula, cor, hclust, cutree, as.dist)", file="NAMESPACE", append=TRUE)
 write("importFrom(ape, Moran.I)", file="NAMESPACE", append=TRUE)
 write("importFrom(tools, file_path_sans_ext)", file="NAMESPACE", append=TRUE)
 write("importFrom(HH, vif)", file="NAMESPACE", append=TRUE)
 write("importFrom(data.table, rbindlist)", file="NAMESPACE", append=TRUE)
 write("importFrom(geosphere, distm, distGeo)", file="NAMESPACE", append=TRUE)
-write("importFrom(utils, globalVariables)", file="NAMESPACE", append=TRUE)
-write("importFrom(raster, raster, stack, brick, as.data.frame, crs)", file="NAMESPACE", append=TRUE)
 write("importFrom(dplyr, filter, rename, arrange, slice, select, inner_join)", file="NAMESPACE", append=TRUE)
 write("importFrom(tibble, rownames_to_column)", file="NAMESPACE", append=TRUE)
 write("importFrom(tidyr, pivot_longer)", file="NAMESPACE", append=TRUE)
 write("importFrom(virtualspecies, generateSpFromFun, convertToPA, sampleOccurrences)", file="NAMESPACE", append=TRUE)
+write("importFrom(tidyselect, all_of)", file="NAMESPACE", append=TRUE)
 
-#adding pipe support
-usethis::use_pipe()
+
 
 #adding data
 usethis::use_data(europe21kBP, quercus, virtual.species, virtual.species.training, europe2000, overwrite = TRUE)
 
-#local check
-devtools::check(cran=TRUE, incoming=TRUE, run_dont_test = TRUE, document=FALSE, build_args="--no-build-vignettes")
+
 
 #build vignettes https://kbroman.org/pkg_primer/pages/vignettes.html
 devtools::build_vignettes()
