@@ -21,22 +21,39 @@ plot(europe21kBP)
 data("quercus")
 str(quercus)
 
-#v_match_rasters
+#v_match_rasters and v_import_rasters
 #---------------------------------
 #for 4D data
-x <- v_match_rasters(
+x.4D <- v_match_rasters(
   raster.template = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc",
   raster.template.crs = "+init=epsg:4326", #default option
   input.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters",
   output.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters",
   n.cores = 6
 )
-x$meta #a data.frame
-class(x)
-inherits(x, "environmental.data")
-inherits(x, "4D")
-attributes(x)
+attributes(x.4D)
+class(x.4D)
+inherits(x.4D, "environmental.data")
+inherits(x.4D, "4D")
+attributes(x.4D)
+x.4D$meta #a data.frame
 
+#testing matched rasters from match rasters 4D
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = FALSE
+  )
+class(x.4D)
+plot(x.4D$data$stack)
+
+#the same object can be converted to brick right away
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = TRUE
+)
+class(x.4D)
+x11()
+plot(x.4D$data$brick)
 
 #for 5D data (several folders, each one representing a different time)
 x <- v_match_rasters(

@@ -5,7 +5,7 @@
 #' @usage v_match_rasters(
 #'  raster.template = NULL,
 #'  raster.template.crs = "+init=epsg:4326",
-#'  input.folder,
+#'  input.folder = NULL,
 #'  output.folder,
 #'  default.crs = "+init=epsg:4326",
 #'  n.cores = NULL
@@ -60,8 +60,8 @@
 v_match_rasters <- function(
  raster.template = NULL,
  raster.template.crs = "+init=epsg:4326",
- input.folder,
- output.folder,
+ input.folder = NULL,
+ output.folder = NULL,
  default.crs = "+init=epsg:4326",
  n.cores = NULL
 ){
@@ -434,7 +434,7 @@ v_match_rasters <- function(
         }
 
         #preparing data for report.df
-        output.vector <- c(
+        report.df.temp.i <- c(
           old.crs,
           new.crs,
           paste(round(old.res, 1), collapse = ", "),
@@ -446,7 +446,7 @@ v_match_rasters <- function(
           NA,
           operation
           )
-        names(output.vector) <- c(
+        names(report.df.temp.i) <- c(
           "old.crs",
           "new.crs",
           "old.res",
@@ -459,7 +459,7 @@ v_match_rasters <- function(
           "operation"
           )
 
-        return(output.vector)
+        return(report.df.temp.i)
 
       }# end of parallelised loop
 
@@ -536,7 +536,7 @@ v_match_rasters <- function(
     )
 
     #parallelised iterations through raster files
-    output.df <- foreach::foreach(
+    report.df.temp <- foreach::foreach(
       i = 1:nrow(report.df),
       .combine = 'rbind',
       .packages = "raster",
@@ -613,14 +613,14 @@ v_match_rasters <- function(
       file.remove(file.path)
 
       #preparing output
-      temp.df <- data.frame(
+      report.df.temp.i <- data.frame(
       new.extent = paste(
         round(as.vector(raster::extent(raster.i)), 3),
         collapse = ", "
         ),
       new.valid.cells = length(na.omit(raster.i)),
       new.path = paste(
-        new.path,
+        output.raster.path,
         ".gri",
         sep = ""
       ),
@@ -628,16 +628,16 @@ v_match_rasters <- function(
       )
 
       #loop output
-      return(temp.df)
+      return(report.df.temp.i)
 
     }#end of parallelised loop
 
 
     #adding output.paths to report.df
     #---------------------------
-    report.df$new.path <- output.df$new.pat
-    report.df$new.extent <- output.df$new.extent
-    report.df$new.valid.cells <- output.df$new.valid.cells
+    report.df$new.path <- report.df.temp$new.path
+    report.df$new.extent <- report.df.temp$new.extent
+    report.df$new.valid.cells <- report.df.temp$new.valid.cells
     rownames(report.df) <- NULL
 
 
@@ -655,9 +655,9 @@ v_match_rasters <- function(
   parallel::stopCluster(my.cluster)
 
   if(subfolder == "none"){
-    class(output.list) <- c("list", "environmental.data", "4D")
+    class(output.list) <- c("list", "environmental.data", "matched.rasters", "4D")
   } else {
-    class(output.list) <- c("list", "environmental.data", "5D")
+    class(output.list) <- c("list", "environmental.data", "matched.rasters", "5D")
   }
 
   return(output.list)
