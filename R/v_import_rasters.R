@@ -12,10 +12,18 @@
 #' @param matched.rasters Object of the class "environmental.data" produced either with \code{\link{v_match_rasters}} (but also by \code{v_import_rasters}, see below).
 #' @param input.folder Character string, path (without final slash) to the folder containing the raster files to be matched, or folder containing subfolders, each one containing raster files representing data from different times.
 #' @param default.crs Default coordinate system for those files in \code{input.folder} that don't have one. The default value is \code{"+init=epsg:4326"}, as in \code{raster.template.crs}. Use this argument with care!
+#' @param to.brick Boolean. Defaults to FALSE. If TRUE, the raster data is read into memory with \code{\link[raster]{brick}}. Otherwise the data is imported as a stack (the data resides in the hard disk) with \code{\link[raster]{stack}}.
 #'
 #' @details TODO
 #'
-#' @return TODO
+#' @return Returns an object of the class "environmental.data" with a slot named "data".
+#'
+#' \itemize{
+#' \item If \code{to.brick = FALSE} and input data is \code{4D}: the slot "data" contains a slot named "stack" with the raster.data.
+#' \item If \code{to.brick = FALSE} and input data is \code{5D}: the slot "data" contains a slot named "stack" with slots named after the subfolders defined in \code{input.folder} or \code{matched.rasters}.
+#' \item If \code{to.brick = TRUE} and input data is \code{4D}: the slot "data" contains a slot named "brick" with the raster.data. The slot "stack" is preserved.
+#' \item If \code{to.brick = TRUE} and input data is \code{5D}: the slot "data" contains a slot named "brick" with slots named after the subfolders defined in \code{input.folder} or \code{matched.rasters}. The slot "stack" is preserved.
+#' }
 #'
 #' @author Blas Benito <blasbenito@gmail.com>. The functions \code{\link[raster]{brick}} and \code{\link[raster]{stack}} are authored by Robert J. Hijmans.
 #' @export
