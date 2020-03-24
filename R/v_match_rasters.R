@@ -55,6 +55,23 @@
 #' \item **5D** variant: If \code{input.folder} contains sub-folders with raster files representing different times, the output object has the attribute "5D", and the "meta" slot has sub-slots named after the different sub-folders, and each one contains the data frame with the metadata of the operations applied for each particular folder.
 #' }
 #'
+#' The dataframe with the metadata contains the following columns:
+#' \itemize{
+#' \item \code{name}: Name of the given variable.
+#' \item \code{old.path}: Path of the original raster file.
+#' \item \code{new.pat}: Path of the new raster file matched to \code{raster.template}.
+#' \item \code{old.crs}: Definition of the original crs of the raster file in proj.4 format.
+#' \item \code{new.crs}: Definition of the final crs of the raster file once it is matched to \code{raster.template}.
+#' \item \code{old.res}: Original resolution, in kilometres (approximate).
+#' \item \code{new.res}: Final resolution after matching, in kilometres (approximate).
+#' \item \code{res.change.factor}: Factor of resolution change. When positive, resolution is increasing, and in this case, large values are undesirable because data is being interpolated. When negative, resolution is decreasing, and data is being aggregated into coarser cells. This is a safe operation no matter the value.
+#' \item \code{old.extent}: Extent of the original raster in the original units of the crs. Note that extent values are rounded to two decimal places for brevity.
+#' \item \code{new.extent}: Extent of the final raster. Rounded as above.
+#' \item \code{old.valid.cells}: Original number of valid (non-empty or non-null) cells in the orginal raster.
+#' \item \code{new.valid.cells}: Final number of valid cells.
+#' \item \code{operation}: Operation applied to the layer during matching. One of "raster::projectRaster()", "raster::resample()", "raster::crop()", or "none".
+#' }
+#'
 #' @author Blas Benito <blasbenito@gmail.com>. The functions \code{\link[raster]{raster}}, \code{\link[raster]{crs}}, \code{\link[raster]{projectRaster}}, \code{\link[raster]{resample}}, \code{\link[raster]{crop}}, \code{\link[raster]{mask}}, and \code{\link[raster]{trim}} are authored by Robert J. Hijmans.
 #' @export
 v_match_rasters <- function(
@@ -655,9 +672,13 @@ v_match_rasters <- function(
   parallel::stopCluster(my.cluster)
 
   if(subfolder == "none"){
-    class(output.list) <- c("list", "environmental.data", "matched.rasters", "4D")
+
+    class(output.list) <- c("list", "environmental.data", "4D")
+
   } else {
-    class(output.list) <- c("list", "environmental.data", "matched.rasters", "5D")
+
+    class(output.list) <- c("list", "environmental.data", "5D")
+
   }
 
   return(output.list)

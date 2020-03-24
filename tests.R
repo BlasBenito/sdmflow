@@ -2,27 +2,34 @@
 library(sdmflow)
 library(raster)
 library(ggplot2)
+library(Hmisc) #to use list.tree
 
-#testing data
-#---------------
-data("virtual.species.training")
-str(virtual.species.training)
+# data() ---------------------------------
 
+#virtual.species
 data("virtual.species")
 str(virtual.species)
 virtual.species$niche.plot
 
+#virtual.species.training
+data("virtual.species.training")
+str(virtual.species.training)
+
+#europe2000
 data("europe2000")
 plot(europe2000)
 
+#europe21kBP
 data("europe21kBP")
 plot(europe21kBP)
 
+#quercus
 data("quercus")
 str(quercus)
 
-#v_match_rasters and v_import_rasters
-#---------------------------------
+
+# v_match_rasters() ---------------------------------
+
 #for 4D data
 x.4D <- v_match_rasters(
   raster.template = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/uneven_rasters/ndvi.asc",
@@ -33,115 +40,174 @@ x.4D <- v_match_rasters(
 )
 attributes(x.4D)
 class(x.4D)
+Hmisc::list.tree(x.5D, depth = 3)
 inherits(x.4D, "environmental.data")
 inherits(x.4D, "4D")
 attributes(x.4D)
 x.4D$meta #a data.frame
 
-#testing matched rasters from match rasters 4D
-x.4D <- v_import_rasters(
-  matched.rasters = x.4D,
-  to.brick = FALSE
-  )
-class(x.4D)
-plot(x.4D$data$stack)
-
-#the same object can be converted to brick right away
-x.4D <- v_import_rasters(
-  matched.rasters = x.4D,
-  to.brick = TRUE
-)
-class(x.4D)
-x11()
-plot(x.4D$data$brick)
 
 #for 5D data (several folders, each one representing a different time)
-x <- v_match_rasters(
+x.5D <- v_match_rasters(
   raster.template = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/by_time/2013/chl.asc",
   raster.template.crs = "+init=epsg:4326", #default option
   input.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/by_time",
   output.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/even_rasters",
   n.cores = 6
 )
-names(x)
-x[["2013"]]
-class(x)
-attributes(x)
-inherits(x, "5D")
+names(x.5D)
+x.5D[["2013"]]
+class(x.5D)
+Hmisc::list.tree(x.5D, depth = 3)
+attributes(x.5D)
+inherits(x.5D, "5D")
 
 
-#METHOD TO PLOT MATCHED RASTERS (implement this as a plot() method!)
-plot = TRUE
-breaks = 10
-margins = c(0,0,2.5,1)  #margins: bottom, left, top, right
+# v_import_rasters() ---------------------------------
+#requires running the previous section
 
-#plotting output
-#-------------------
-if(plot == TRUE){
 
-  #saving user's par
-  opar <- par()
+#4D ###
 
-  #setting plot window
-  par(
-    mfrow = c(nrow(report.df), 2),
-    mar = margins,
-    oma = c(3, 3, 1, 0.5)
+#to stack
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = FALSE
   )
+print(object.size(x.4D), units="MB")
+class(x.4D)
+Hmisc::list.tree(x.5D, depth = 4)
+plot(x.4D$data$stack)
 
-  #looping through rasters
-  for(i in 1:nrow(report.df)){
+#to brick
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = TRUE
+)
+print(object.size(x.4D), units="MB")
+class(x.4D)
+Hmisc::list.tree(x.5D, depth = 4)
+plot(x.4D$data$brick)
 
-    #get rasters
-    raster.old <- raster::raster(x = report.df[i, "old.path"])
-    raster.new <- raster::raster(x = report.df[i, "new.path"])
-
-    #set names
-    names(raster.old) <- paste(report.df[i, "name"], ".old", sep = "")
-    names(raster.new) <- paste(report.df[i, "name"], ".new", sep = "")
-
-    #set crs
-    if(is.na(raster::crs(raster.old))){
-      raster::crs(raster.old) <- report.df[i, "old.crs"]
-    }
-    if(is.na(raster::crs(raster.new))){
-      raster::crs(raster.new) <- report.df[i, "new.crs"]
-    }
-
-    #getting break values from raster.old
-    raster.old <- raster::setMinMax(raster.old)
-    breaks.seq <- labeling::extended(
-      min(raster::minValue(raster.old)),
-      max(raster::maxValue(raster.old)),
-      m = breaks
-    )
-
-    #plot
-    plot(
-      raster.old,
-      main = names(raster.old),
-      legend = FALSE,
-      breaks = breaks.seq,
-      col = viridis::viridis(breaks)
-    )
-    plot(raster.new,
-         main = names(raster.new),
-         legend = TRUE,
-         breaks = breaks.seq,
-         col = viridis::viridis(breaks)
-    )
-
-  }
-
-  #restore par settings
-  par(opar)
-
-}
+#removing brick to save memory
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = FALSE
+)
+print(object.size(x.4D), units="MB")
+class(x.4D)
+Hmisc::list.tree(x.5D, depth = 4)
+x.4D$data$brick
 
 
+#5D ###
+
+#to stack
+x.5D <- v_import_rasters(
+  matched.rasters = x.5D,
+  to.brick = FALSE
+)
+print(object.size(x.5D), units="MB")
+class(x.5D)
+Hmisc::list.tree(x.5D, depth = 4)
+names(x.5D)
+names(x.5D$data$stack)
+plot(x.5D$data$stack$`2013`)
+plot(x.5D$data$stack$`2014`)
+plot(x.5D$data$stack$`2015`)
+
+#to brick
+x.5D <- v_import_rasters(
+  matched.rasters = x.5D,
+  to.brick = TRUE
+)
+print(object.size(x.5D), units="MB")
+class(x.5D)
+Hmisc::list.tree(x.5D, depth = 4)
+names(x.5D)
+names(x.5D$data$brick)
+plot(x.5D$data$brick$`2013`)
+plot(x.5D$data$brick$`2014`)
+plot(x.5D$data$brick$`2015`)
+
+#to stack again
+x.5D <- v_import_rasters(
+  matched.rasters = x.5D,
+  to.brick = FALSE
+)
+print(object.size(x.5D), units="MB")
+x.5D$data$brick
+names(x.5D$data$stack)
+plot(x.5D$data$stack$`2013`)
+plot(x.5D$data$stack$`2014`)
+plot(x.5D$data$stack$`2015`)
+
+
+# using input.folder ###
+
+
+#4D case ###
+
+#to stack
+x.4D <- v_import_rasters(
+  input.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/by_time/2013",
+  default.crs = "+init=epsg:4326",
+  to.brick = FALSE
+)
+print(object.size(x.4D), units="MB")
+class(x.4D)
+Hmisc::list.tree(x.4D, depth = 4)
+plot(x.4D$data$stack)
+
+#to brick
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = TRUE
+)
+print(object.size(x.4D), units="MB")
+class(x.4D)
+Hmisc::list.tree(x.4D, depth = 4)
+plot(x.4D$data$brick)
+class(x.4D)
+
+#to stack again
+x.4D <- v_import_rasters(
+  matched.rasters = x.4D,
+  to.brick = FALSE
+)
+print(object.size(x.4D), units="MB")
+class(x.4D)
 
 
 
+#5D case ###
+
+#to stack
+x.5D <- v_import_rasters(
+  input.folder = "/home/blas/Dropbox/GITHUB/R_packages/sdmflow_shared/example_data/by_time",
+  default.crs = "+init=epsg:4326",
+  to.brick = FALSE
+)
+print(object.size(x.5D), units="MB")
+class(x.5D)
+Hmisc::list.tree(x.5D, depth = 4)
+plot(x.5D$data$stack$`2013`)
+
+#to brick
+x.5D <- v_import_rasters(
+  matched.rasters = x.5D,
+  to.brick = TRUE
+)
+print(object.size(x.5D), units="MB")
+class(x.5D)
+
+#to stack again
+x.5D <- v_import_rasters(
+  matched.rasters = x.5D,
+  to.brick = FALSE
+)
+print(object.size(x.5D), units="MB")
+class(x.5D)
 
 
 
