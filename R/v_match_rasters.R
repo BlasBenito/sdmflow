@@ -1,47 +1,47 @@
-#' Matching the reference coordinate system, extension, resolution, and mask of rasters from different sources.
+#' Matching the reference coordinate system, geographical extent, resolution, and mask of rasters from different sources.
 #'
-#' @description Raster files from different sources may have different reference coordinate systems, extensions, resolutions, and valid cells. However, species distribution models require all rasters to have the same features, and this function facilitates the tedious task of processing raster layers so they can be used in species distribution modelling exercises.
+#' @description Raster files from different sources may have different reference coordinate systems, geographical extents, resolutions, and valid cells. However, species distribution models require all rasters to have the same features, and this function facilitates the tedious task of processing raster layers so they can be used in species distribution modelling exercises.
 #'
 #' @usage v_match_rasters(
 #'  raster.template = NULL,
 #'  raster.template.crs = "+init=epsg:4326",
-#'  input.folder = NULL,
+#'  input.folder,
 #'  output.folder,
 #'  default.crs = "+init=epsg:4326",
 #'  n.cores = NULL
 #'  )
 #'
-#' @param raster.template Complete path to a raster file or raster object in the R environment to be used as a template. All rasters in \code{input.folder} will be adjusted to the coordinate reference system, exent, and resolution of this raster layer.
-#' @param raster.template.crs Character string in proj4string format defining a coordinate reference system of \code{raster.template}. Only required when the raster format of the template does not contain this information (as it happens with .asc files). The default crs is \emph{"+init=epsg:4326"}, valid latitude-longitude data according the global datum WGS84.
-#' @param input.folder Character string, path (without final slash) to the folder containing the raster files to be matched, or folder containing subfolders, each one containing raster files representing data from different times.
-#' @param output.folder Character string, path (without final slash) of the folder where the matched rasters will be written. Defaults to "/matched_rasters" in the working directory if nothing else is provided
+#' @param raster.template Complete the path to a raster file or raster object in the R environment to be used as a template. All rasters in \code{input.folder} will be transformed to the coordinate reference system, extent, and resolution of this raster layer.
+#' @param raster.template.crs Character string in proj4string format defining a coordinate reference system of \code{raster.template}. Only required when the raster format of the template does not contain this information (e.g. as with .asc files). The default crs is \emph{"+init=epsg:4326"}, valid latitude-longitude data according to the global datum WGS84.
+#' @param input.folder Character string, path (without final slash) to the folder containing the raster files to be transformed, or to a folder containing subfolders, each one containing raster files representing data from different times.
+#' @param output.folder Character string, path (without final slash) of the folder where the transformed rasters will be written. Defaults to "/matched_rasters" in the working directory if nothing else is provided
 #' @param default.crs Default coordinate system for those files in \code{input.folder} that don't have one. The default value is \code{"+init=epsg:4326"}, as in \code{raster.template.crs}. Use this argument with care!
-#' @param n.cores Integer, number of cores to be used during the matching operations. If the target rasters are very large, and the RAM memory available is low, \code{n.cores} should be low as well.
+#' @param n.cores Integer, number of cores to be used during the matching operations. If the target rasters are very large, and the RAM memory available is low, \code{n.cores} should also be low.
 #'
 #'@details
 #'
-#' This function requires a \strong{\code{raster.template}}, which is a raster file stored in the hard disk or a raster object in the R environment having the desired properties.
+#' This function requires a \strong{\code{raster.template}}, which is a raster file stored in the hard disk or a raster object in the R environment which has the properties desired for all rasters.
 #'
-#' If the template file does not contain information about the coordinate reference system (.asc files don't), the user must define the argument \strong{\code{raster.template.crs}}, which takes a character string following the \href{https://proj.org/usage/quickstart.html}{proj4string}. The easiest way to do this is by using the \href{https://spatialreference.org/}{EPSG} code of the given coordinate reference system. For example, for for latitude-longitude data based on the datum WGS84, the usual proj4string format would be \code{"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"}. The EPSG alternative is \code{"+init=epsg:4326"}, way shorter and easier to remember. Note that this argument is not required if the file format of \code{raster.template} already contains information about the coordinate reference system. This is the case with geotif files (.tif extension) and many others.
+#' If the template file does not contain information about the coordinate reference system (e.g. .asc files don't), the user must define the argument \strong{\code{raster.template.crs}}, which takes a character string following the \href{https://proj.org/usage/quickstart.html}{proj4string}. The easiest way to do this is by using the \href{https://spatialreference.org/}{EPSG} code of the given coordinate reference system. For example, for latitude-longitude data based on the datum WGS84, the usual proj4string format would be \code{"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"}. The EPSG alternative is \code{"+init=epsg:4326"}, way shorter and easier to remember. Note that this argument is not required if the file format of \code{raster.template} already contains information about the coordinate reference system. This is the case with geotif files (.tif extension) and many others.
 #'
 #' The \strong{\code{input.folder}} argument is either:
 #' \itemize{
-#' \item The path to the folder containing the raster files to be matched. For example, the folder ".../my_rasters" containing the rasters "temperature.tif" and "rainfall.tif"). This is named \strong{4D} data (x, y, variable values, and variable names) in this package.
+#' \item The path to the folder containing the raster files to be transformed. For example, the folder ".../my_rasters" containing the rasters "temperature.tif" and "rainfall.tif"). This is named \strong{4D} data (x, y, variable values, and variable names) in this package.
 #'
-#' \item The path to the folder containing the subfolders with the rasters representing different times. For example, the folder ".../my_rasters" containing the subfolders "2019" and "2020", each one containing the rasters "temperature.tif" and "rainfall.tif" of the respective years. This is named \strong{5D} data (x, y, variable values, variable names, and times). In this case, the sub-folders with the matched rasters are written to \code{output.path}.
+#' \item The path to the folder containing the subfolders with rasters representing data from different times. For example, the folder ".../my_rasters" containing the subfolders "2019" and "2020", wherein each one contains the rasters "temperature.tif" and "rainfall.tif" of the respective years. This is named \strong{5D} data (x, y, variable values, variable names, and times). In this case, the sub-folders with the matched rasters are written to \code{output.path}.
 #' }
 #'
-#' When the data is separated in subfolders representing different times, the mask (spatial distribution of no-data values) for each subfolder is computed separately. This allows different times to have different masks. This is especially useful when different times may have very different masks, as it is the case between the present time and the Last Glacial Maximum.
+#' When the data is separated in subfolders representing different times, the mask (spatial distribution of no-data values) for each subfolder is computed separately. This allows different times to have different masks. This is especially useful when different times may have very different masks, for example as is the case between the present time and the Last Glacial Maximum.
 #'
 #' This function relies on the following functions of the \code{raster} package:
 #' \itemize{
-#' \item \code{\link[raster]{projectRaster}}: to reproject any given raster to the same coordinate reference system, extension and resolution as \code{raster.template} when they do not have the same crs.
-#' \item \code{\link[raster]{resample}}: to adjust a raster to the extension and resolution of \code{raster.template} when they have the same crs.
-#' \item \code{\link[raster]{crop}}: to adjust a raster to the extension of \code{raster.template} when they have the same crs and resolution.
+#' \item \code{\link[raster]{projectRaster}}: to reproject any given raster to the same coordinate reference system, extent and resolution as \code{raster.template} when they do not have the same crs.
+  #' \item \code{\link[raster]{resample}}: to adjust a raster to the same extent and resolution of \code{raster.template} when they have the same crs.
+#' \item \code{\link[raster]{crop}}: to adjust a raster to the extent of \code{raster.template} when they have the same crs and resolution.
 #' \item \code{\link[raster]{mask}}: to apply a common mask to all rasters.
-#' \item \code{\link[raster]{trim}}: to remove NA values from the border of the rasters.
+  #' \item \code{\link[raster]{trim}}: to remove NA values from the border of the rasters.
 #' \item \code{\link[raster]{raster}}: to import raster files from disk into R.
-#' \item \code{\link[raster]{crs}}: to set the coordinate reference system of layers that do not have any.
+#' \item \code{\link[raster]{crs}}: to set the coordinate reference system of layers that do not have one.
 #' }
 #'
 #' @return
@@ -55,30 +55,13 @@
 #' \item **5D** variant: If \code{input.folder} contains sub-folders with raster files representing different times, the output object has the attribute "5D", and the "meta" slot has sub-slots named after the different sub-folders, and each one contains the data frame with the metadata of the operations applied for each particular folder.
 #' }
 #'
-#' The dataframe with the metadata contains the following columns:
-#' \itemize{
-#' \item \code{name}: Name of the given variable.
-#' \item \code{old.path}: Path of the original raster file.
-#' \item \code{new.pat}: Path of the new raster file matched to \code{raster.template}.
-#' \item \code{old.crs}: Definition of the original crs of the raster file in proj.4 format.
-#' \item \code{new.crs}: Definition of the final crs of the raster file once it is matched to \code{raster.template}.
-#' \item \code{old.res}: Original resolution, in kilometres (approximate).
-#' \item \code{new.res}: Final resolution after matching, in kilometres (approximate).
-#' \item \code{res.change.factor}: Factor of resolution change. When positive, resolution is increasing, and in this case, large values are undesirable because data is being interpolated. When negative, resolution is decreasing, and data is being aggregated into coarser cells. This is a safe operation no matter the value.
-#' \item \code{old.extent}: Extent of the original raster in the original units of the crs. Note that extent values are rounded to two decimal places for brevity.
-#' \item \code{new.extent}: Extent of the final raster. Rounded as above.
-#' \item \code{old.valid.cells}: Original number of valid (non-empty or non-null) cells in the orginal raster.
-#' \item \code{new.valid.cells}: Final number of valid cells.
-#' \item \code{operation}: Operation applied to the layer during matching. One of "raster::projectRaster()", "raster::resample()", "raster::crop()", or "none".
-#' }
-#'
 #' @author Blas Benito <blasbenito@gmail.com>. The functions \code{\link[raster]{raster}}, \code{\link[raster]{crs}}, \code{\link[raster]{projectRaster}}, \code{\link[raster]{resample}}, \code{\link[raster]{crop}}, \code{\link[raster]{mask}}, and \code{\link[raster]{trim}} are authored by Robert J. Hijmans.
 #' @export
 v_match_rasters <- function(
  raster.template = NULL,
  raster.template.crs = "+init=epsg:4326",
- input.folder = NULL,
- output.folder = NULL,
+ input.folder,
+ output.folder,
  default.crs = "+init=epsg:4326",
  n.cores = NULL
 ){
@@ -147,7 +130,7 @@ v_match_rasters <- function(
 
   } else {
 
-    #gets all input folders but the first one
+    #gets all input folders except the first one
     subfolders <- subfolders[2:length(subfolders)]
 
   }
@@ -234,7 +217,7 @@ v_match_rasters <- function(
   #--------------------------------
   for(subfolder in subfolders){
 
-    #getting file paths (this should get after the loop)
+    #getting file paths (this should go  after the loop)
     #--------------------------------
     #if there are no subfolders
     if(subfolder == "none"){
@@ -451,7 +434,7 @@ v_match_rasters <- function(
         }
 
         #preparing data for report.df
-        report.df.temp.i <- c(
+        output.vector <- c(
           old.crs,
           new.crs,
           paste(round(old.res, 1), collapse = ", "),
@@ -463,7 +446,7 @@ v_match_rasters <- function(
           NA,
           operation
           )
-        names(report.df.temp.i) <- c(
+        names(output.vector) <- c(
           "old.crs",
           "new.crs",
           "old.res",
@@ -476,7 +459,7 @@ v_match_rasters <- function(
           "operation"
           )
 
-        return(report.df.temp.i)
+        return(output.vector)
 
       }# end of parallelised loop
 
@@ -553,7 +536,7 @@ v_match_rasters <- function(
     )
 
     #parallelised iterations through raster files
-    report.df.temp <- foreach::foreach(
+    output.df <- foreach::foreach(
       i = 1:nrow(report.df),
       .combine = 'rbind',
       .packages = "raster",
@@ -630,14 +613,14 @@ v_match_rasters <- function(
       file.remove(file.path)
 
       #preparing output
-      report.df.temp.i <- data.frame(
+      temp.df <- data.frame(
       new.extent = paste(
         round(as.vector(raster::extent(raster.i)), 3),
         collapse = ", "
         ),
       new.valid.cells = length(na.omit(raster.i)),
       new.path = paste(
-        output.raster.path,
+        new.path,
         ".gri",
         sep = ""
       ),
@@ -645,16 +628,16 @@ v_match_rasters <- function(
       )
 
       #loop output
-      return(report.df.temp.i)
+      return(temp.df)
 
     }#end of parallelised loop
 
 
     #adding output.paths to report.df
     #---------------------------
-    report.df$new.path <- report.df.temp$new.path
-    report.df$new.extent <- report.df.temp$new.extent
-    report.df$new.valid.cells <- report.df.temp$new.valid.cells
+    report.df$new.path <- output.df$new.pat
+    report.df$new.extent <- output.df$new.extent
+    report.df$new.valid.cells <- output.df$new.valid.cells
     rownames(report.df) <- NULL
 
 
@@ -672,13 +655,9 @@ v_match_rasters <- function(
   parallel::stopCluster(my.cluster)
 
   if(subfolder == "none"){
-
     class(output.list) <- c("list", "environmental.data", "4D")
-
   } else {
-
     class(output.list) <- c("list", "environmental.data", "5D")
-
   }
 
   return(output.list)
